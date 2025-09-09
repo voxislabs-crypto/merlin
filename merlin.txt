@@ -1,0 +1,37 @@
+🧩 Merlin Launch Roadmap
+Version	Core Focus	Features	Purpose
+v1 (Launch)	Stability + Ritual	- Swiss Ephemeris (real planetary data)
+- Aspect detection + orb weighting
+- Theme assignment (Relationships, Career, Inner Work)
+- Confidence scoring + cross-system validation
+- MBTI overlays (INFJ active, others later)
+- Daily Forecast Cards (theme, glyphs, Do/Don’t, resonance %, confidence %, intensity meters)
+- Weekly Scroll (condensed)
+- Weekly Report (accuracy %, top aspects, cluster insights)
+- Resonance feedback loop (personal, cluster, global)
+- Profile onboarding (birth data + chart)
+- Notifications (morning/evening/weekly)
+- Minimal Widget (theme + Do/Don’t)
+- Cosmic utilities (Chat, Docs, Web, Image gen, reframed)	Launch-ready: Establish Merlin as the most advanced astrology app (accuracy + mystical UX). Ritual habit loop in place.
+v2 (Post-Launch Upgrade)	Cosmic Environment Layer	- Space weather overlays (Solar flares, Kp index, Schumann resonance)
+- “Cosmic Environment Panel” on forecast cards (amplify/soften transits)
+- Widget customization (add resonance %, weekly glance)
+- Enneagram + Big 5 overlays
+- Multi-profile support (“Cosmic Circle” for partners/friends)
+- Push notification refinement (magnetic storm alerts, lunar cycle streaks)
+- Shareable “Cosmic Cards” (social growth lever)	Differentiator: Move beyond astrology → Merlin becomes the only app syncing astrology with real space conditions.
+v3 (Expansion)	Social + Collective Resonance	- Synastry & Composite charts
+- Cluster resonance “community insights” (how other INFJs or groups are resonating)
+- Community features (optional sharing of resonance % / experiences)
+- Monthly & yearly forecasts (long-term planning)
+- AI-generated “life maps” (purpose, cycles, peak years)
+- Astro marketplace (premium readings, add-ons)	Scale: Transform Merlin into a living cosmic network. Users contribute to the oracle, making it stronger.
+⚡ Key Principle
+
+v1 = Lock, polish, ship.
+
+v2 = Expand into cosmic environment & customization.
+
+v3 = Build the social / collective resonance dimension.
+
+This roadmap tells V0: “Here’s what to finish. No wandering. Future cool stuff comes later.”

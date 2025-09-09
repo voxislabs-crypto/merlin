@@ -1,0 +1,14 @@
+School,Region,Core Features,Best Used For,Implementation Strategy,Complementary To
+Western Astrology,Europe / Global,"Zodiac signs, planets, houses, aspects","General personality, transits, synastry",Main engine for core analysis,"Hellenistic, Psychological, Vedic"
+Hellenistic Astrology,Ancient Greece / Rome,"Whole sign houses, Time Lords, Lots, Profections",Traditional predictive techniques,Add ancient timing and dignity layers,"Western, Electional, Horary"
+Vedic Astrology (Jyotish),India,"Sidereal zodiac, Nakshatras, Dashas, Karma","Karma, dharma, spiritual path","Add sidereal chart, Dasha & Nakshatra module","Western, Esoteric, Evolutionary"
+Chinese Astrology,China,"Animal signs, Elements, Lunar calendar","Annual cycles, elemental influences","Yearly theme overlay, lunar-based traits","Western (cyclical theme), Mayan"
+Mayan Astrology,Mesoamerica,"Tzolk’in calendar, Galactic/directional energies",Esoteric and galactic themes,Add Mayan birthday mapping and interpretation,"Chinese (calendar-based), Esoteric"
+Esoteric Astrology,Theosophical (Global),"Soul evolution, spiritual purpose of planets","Spiritual development, soul mission",Spiritual overlays in natal reports,"Vedic, Evolutionary"
+Evolutionary Astrology,Modern Western,"Pluto, Lunar Nodes, soul karma themes",Past life & soul growth insights,Add karmic layers to Pluto/Lunar Nodes,"Esoteric, Vedic"
+Uranian (Hamburg) Astrology,Germany,"Midpoints, hypothetical planets, symmetry",Advanced timing and geometry,"Optional expert mode, midpoint calculator",Western (advanced users)
+Psychological Astrology,Jungian / Global,"Archetypes, shadow work, psychological themes","Inner work, emotional insights",Enhance natal/synastry readings psychologically,"Western, Esoteric"
+Medical Astrology,Ancient-Renaissance,"Planet-body correspondences, health",Health diagnosis & timing,Health-focused interpretations per planet/house,"Western, Horary"
+Horary Astrology,Hellenistic-Islamic,"Chart for moment of question, divination",Answering specific life questions,Create daily Q&A chart module,"Hellenistic, Electional"
+Electional Astrology,Hellenistic-Islamic,"Best times for events, planning via charts",Choosing auspicious dates,"Calendar integration, planning tools","Hellenistic, Western"
+Astrocartography,Modern Western,"Planetary lines on Earth, geographic influence","Relocation, travel, where to live",Geolocation module with map overlays,"Western, Natal, Transit"

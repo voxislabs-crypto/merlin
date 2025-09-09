@@ -1,0 +1,22 @@
+{
+  "signs": [
+    { "western": "Aries", "vedic": "Mesha", "element": "Fire", "archetypes": ["initiative","assertion"] },
+    { "western": "Taurus", "vedic": "Vrishabha", "element": "Earth", "archetypes": ["stability","value"] }
+  ],
+  "planets": [
+    { "name": "Sun", "core": ["vitality","purpose"], "esoteric_ruler": null },
+    { "name": "Moon", "core": ["needs","habit"], "esoteric_ruler": null },
+    { "name": "Mars", "core": ["drive","heat","boundaries"], "esoteric_ruler": "Scorpio (alt.)" }
+  ],
+  "houses": [
+    { "n": 1, "life_area": "Identity/Body", "medical_hint": ["head","face"] },
+    { "n": 10, "life_area": "Career/Public", "medical_hint": [] }
+  ],
+  "theme_tags": {
+    "growth": ["Jupiter aspects","Wood element","trines to Sun"],
+    "discipline": ["Saturn aspects","Metal element","squares to Mars"]
+  },
+  "bridges": {
+    "elements_map": { "Fire": ["Wood","Fire"], "Earth": ["Earth","Metal"], "Air": ["Metal","Air"], "Water": ["Water"] }
+  }
+}

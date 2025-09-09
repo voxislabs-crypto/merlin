@@ -1,0 +1,9 @@
+npx ts-node scripts/checkOllamaPort.ts
+
+
+
+OR USE	
+
+
+
+Test-NetConnection -ComputerName localhost -Port 11434

@@ -1,0 +1,56 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model ResonanceFeedback {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id") // Optional: for user-specific feedback
+  entityId  String   @map("entity_id") // The ID of the entity (e.g., aspect, transit)
+  entityType String  @map("entity_type") // Type of entity (e.g., 'aspect', 'transit')
+  score     Float    // Feedback score (-1 to 1)
+  weight    Float    @default(1.0) // Initial weight of this feedback
+  context   Json?    // Additional context about the feedback
+  metadata  Json?    // Any additional metadata
+  
+  // Timestamps
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  expiresAt DateTime? @map("expires_at") // When this feedback should expire/decay
+  
+  // Indexes
+  @@index([userId, entityId, entityType])
+  @@index([expiresAt])
+  
+  // Map to database table name
+  @@map("resonance_feedback")
+}
+
+model ResonanceWeight {
+  id         String   @id @default(uuid())
+  scope      String   // 'global', 'cluster', or 'user'
+  scopeId    String?  @map("scope_id") // ID of the cluster or user (null for global)
+  entityType String   @map("entity_type")
+  entityId   String?  @map("entity_id") // Optional: specific entity ID
+  weight     Float    // The weight value
+  decayRate  Float    @default(0.95) @map("decay_rate") // Per-day decay rate (0.95 = 5% decay per day)
+  
+  // Timestamps
+  updatedAt  DateTime @updatedAt @map("updated_at")
+  
+  // Composite unique constraint
+  @@unique([scope, scopeId, entityType, entityId], name: "resonance_weight_unique")
+  
+  // Indexes
+  @@index([scope, scopeId, entityType])
+  
+  // Map to database table name
+  @@map("resonance_weights")
+}
