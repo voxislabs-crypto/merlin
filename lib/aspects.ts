@@ -161,7 +161,7 @@ export function demoAspectDetection(): void {
   console.log("[v0] Running Aspect Detection Demo...")
 
   // Import from ephemeris (this will work with our stubs)
-  const { getAllPositions } = require("./ephemeris")
+  const { getAllPositions } = require("../src/lib/ephemeris")
 
   // Get current planetary positions
   const positions = getAllPositions(new Date(), 40.7128, -74.006) // NYC coordinates

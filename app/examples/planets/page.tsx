@@ -1,6 +1,6 @@
 'use client';
 
-import { useEphemeris } from '../../../lib/hooks/useEphemeris.js';
+import { useEphemeris } from '../../../lib/hooks/useEphemeris';
 import { format } from 'date-fns';
 
 type PlanetPosition = {

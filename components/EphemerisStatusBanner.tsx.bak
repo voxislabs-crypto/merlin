@@ -1,19 +1,10 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-
-interface HealthStatus {
-  mode: 'real' | 'mock';
-  nodeVersion: string;
-  lastCheck: string;
-  details: string;
-  environment?: string;
-  mockMode?: boolean;
-  error?: string;
-}
+import { EphemerisHealthStatus } from '../lib/ephemeris-health';
 
 export function EphemerisStatusBanner() {
-  const [status, setStatus] = useState<HealthStatus | null>(null);
+  const [status, setStatus] = useState<Omit<EphemerisHealthStatus, 'mode'> & { mode: EphemerisHealthStatus['mode'] | 'error' } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -29,9 +20,8 @@ export function EphemerisStatusBanner() {
       setStatus({
         mode: 'mock',
         nodeVersion: 'unknown',
-        lastCheck: new Date().toISOString(),
-        details: 'Error: Failed to check status. Using mock data.',
-        environment: 'client'
+        lastCheck: new Date(),
+        details: 'Error: Failed to check status. Using mock data.'
       });
     } finally {
       setIsLoading(false);
@@ -64,7 +54,7 @@ export function EphemerisStatusBanner() {
         <div>
           {icon} <span className="font-medium">{message}</span>
           <span className="ml-2 text-xs opacity-75">
-            Node {status.nodeVersion} • {status.environment || 'unknown'} • Last checked: {lastUpdated?.toLocaleTimeString()}
+            Node {status.nodeVersion} • Last checked: {lastUpdated?.toLocaleTimeString()}
           </span>
         </div>
         <button 

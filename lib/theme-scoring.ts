@@ -1,107 +1,97 @@
-Theme - Priority
-Algorithm
-\
-1. Weighted Theme Scoring
-\
-Each detected aspect already has a score (orb tightness × planet importance × aspect
-type
-).
-Now, roll those scores up into themes:
-
-function themeScores(aspectsDetected) {
-  const scores = {}
-
-  aspectsDetected.forEach((a) => {
-    const themes = assignThemes(a) // from our earlier theme map
-    const weight = scoreAspect(a) // from priority filter
-
-    themes.forEach((t) => {
-      scores[t] = (scores[t] || 0) + weight
-    })
-  })
-
-  return scores
+// Theme scoring algorithms for Merlin
+export interface ThemeScore {
+  theme: string
+  score: number
+  aspects: string[]
+  resonance: number
 }
 
-\
-This gives you a total “theme strength”
-for the day.\
-\
-2. Pick Main Focus
-\
-Choose the theme
-with the highest
-score as the
-headline: function mainTheme(scores) {
-  return Object.entries(scores)
-    .sort((a, b) => b[1] - a[1])[0][0]; // theme name with max score
+export interface ScoringFactors {
+  aspectStrength: number
+  orbTightness: number
+  userResonance: number
+  housePlacement: number
 }
-\
-3. Assign Primary & Secondary Themes
 
-Output structure:
+export function calculateThemeScore(
+  theme: string,
+  aspects: any[],
+  resonanceStats: Record<string, number>,
+  housePlacements?: Record<string, number>
+): ThemeScore {
+  const factors: ScoringFactors = {
+    aspectStrength: calculateAspectStrength(aspects),
+    orbTightness: calculateOrbTightness(aspects),
+    userResonance: resonanceStats[theme] || 0.5,
+    housePlacement: housePlacements ? calculateHouseInfluence(theme, housePlacements) : 0
+  }
 
-{
-  ;("primaryTheme")
-  : \"Relationships",
-  "secondaryThemes": ["Career", "Inner Work"]
+  // Weighted scoring algorithm
+  const baseScore = (factors.aspectStrength * 0.4) + 
+                   (factors.orbTightness * 0.2) + 
+                   (factors.userResonance * 0.3) + 
+                   (factors.housePlacement * 0.1)
+
+  return {
+    theme,
+    score: Math.max(0, Math.min(1, baseScore)),
+    aspects: aspects.map(a => `${a.planets[0]}-${a.planets[1]} ${a.aspect}`),
+    resonance: factors.userResonance
+  }
 }
-\
-4. Example Run
 
-Suppose aspects today are:
-
-Moon square Venus (Relationships, score 28)
-
-Sun opposition Saturn (Career, score 25)
-
-Pluto trine Chiron (Inner Work, score 15)
-
-Theme scores →
-
-Relationships: 28
-
-Career: 25
-
-Inner Work: 15
-
-Output →
-
-{
-  ;("primaryTheme")
-  : \"Relationships",
-  "secondaryThemes": ["Career", "Inner Work"]
+function calculateAspectStrength(aspects: any[]): number {
+  if (aspects.length === 0) return 0
+  
+  const totalStrength = aspects.reduce((sum, aspect) => {
+    return sum + (aspect.strength || 0)
+  }, 0)
+  
+  return Math.min(1, totalStrength / aspects.length)
 }
-\
-5. Narrative Flow in Forecast
 
-Merlin can now write forecasts like this:
+function calculateOrbTightness(aspects: any[]): number {
+  if (aspects.length === 0) return 0
+  
+  const totalOrb = aspects.reduce((sum, aspect) => {
+    return sum + (aspect.orb || 10)
+  }, 0)
+  
+  const avgOrb = totalOrb / aspects.length
+  // Lower orb = higher score (inverted scale)
+  return Math.max(0, 1 - (avgOrb / 10))
+}
 
-Today’s Focus: Relationships (🔴)
-“Moon square Venus stirs emotional tension in love and money. Prioritize honesty and patience.”
+function calculateHouseInfluence(theme: string, housePlacements: Record<string, number>): number {
+  // Simple house influence calculation
+  const relevantHouses = getThemeRelevantHouses(theme)
+  let score = 0
+  
+  for (const house of relevantHouses) {
+    if (housePlacements[house]) {
+      score += housePlacements[house] / relevantHouses.length
+    }
+  }
+  
+  return Math.min(1, score)
+}
 
-Secondary Themes:
+function getThemeRelevantHouses(theme: string): number[] {
+  const houseMappings: Record<string, number[]> = {
+    'career': [10, 6, 2],
+    'relationships': [7, 5, 11],
+    'innerWork': [12, 8, 4],
+    'communication': [3, 9, 1],
+    'finance': [2, 8, 10]
+  }
+  
+  return houseMappings[theme] || [1, 4, 7, 10]
+}
 
-Career (🟡): Sun opp Saturn — Authority feels heavy, deadlines loom.
+export function rankThemes(scores: ThemeScore[]): ThemeScore[] {
+  return scores.sort((a, b) => b.score - a.score)
+}
 
-Inner Work (🟢): Pluto trine Chiron — Subtle healing of old wounds.
-
-6. UI Idea
-
-Top of screen: Primary Focus Card (theme + headline guidance).
-
-Below: Secondary Cards
-with supporting aspects.
-\
-Intensity bar per card (Red/Yellow/Green).
-
-⚡ Why This Matters
-
-Keeps users from drowning in astro jargon.
-
-Gives each day a single headline focus → feels personal, digestible.
-
-Matches how real life feels (usually 1 main “thing” dominates a day).
-
-Opens the door to theme-based push notifications:
-“⚡ Today’s Focus: Relationships — tension between love and emotional needs. Be patient.”
+export function getTopThemes(scores: ThemeScore[], count: number = 3): ThemeScore[] {
+  return rankThemes(scores).slice(0, count)
+}

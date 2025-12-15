@@ -1,8 +1,8 @@
+import { createClient } from '@/utils/supabase/server'
 import { NextResponse } from 'next/server'
-import type { NextRequest } from 'next/server'
-import { PrismaClient } from '@prisma/client'
+import NextRequest from 'next/server'
 
-const prisma = new PrismaClient()
+export const runtime = 'nodejs'
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -12,43 +12,39 @@ export async function middleware(request: NextRequest) {
     pathname.startsWith('/_next') ||
     pathname.startsWith('/api') ||
     pathname.startsWith('/static') ||
-    pathname === '/onboarding'
+    pathname === '/onboarding' ||
+    pathname === '/login' ||
+    pathname.startsWith('/auth/callback')
   ) {
     return NextResponse.next()
   }
 
-  // Get user session (you'll need to implement this based on your auth system)
-  const userId = getUserIdFromSession(request)
+  const supabase = await createClient()
+  const { data: { session } } = await supabase.auth.getSession()
   
-  if (!userId) {
+  if (!session) {
     // Redirect to login if not authenticated
     return NextResponse.redirect(new URL('/login', request.url))
   }
 
   try {
     // Check if user has completed onboarding
-    const profile = await prisma.userProfile.findUnique({
-      where: { userId }
-    })
+    const { data: profile } = await supabase
+      .from('userProfile')
+      .select('*')
+      .eq('userId', session.user.id)
+      .single()
 
     // If no profile or missing birth date, redirect to onboarding
-    if (!profile || !profile.birthDate) {
+    if (!profile || !(profile as any).birthDate) {
       return NextResponse.redirect(new URL('/onboarding', request.url))
     }
-
   } catch (error) {
     console.error('Middleware error:', error)
     // If database error, allow access (don't block the app)
   }
 
   return NextResponse.next()
-}
-
-function getUserIdFromSession(request: NextRequest): string | null {
-  // Implement this based on your auth system
-  // For example, if using cookies:
-  const sessionCookie = request.cookies.get('session')
-  return sessionCookie?.value || null
 }
 
 export const config = {
@@ -60,7 +56,9 @@ export const config = {
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
      * - onboarding (onboarding page itself)
+     * - login (login page itself)
+     * - auth/callback (Supabase auth callback)
      */
-    '/((?!api|_next/static|_next/image|favicon.ico|onboarding).*)',
+    '/((?!api|_next/static|_next/image|favicon.ico|onboarding|login|auth/callback).*)',
   ],
 }

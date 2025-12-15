@@ -6,7 +6,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -19,14 +19,18 @@ model UserProfile {
   birthLocation String?  @map("birth_location")
   timeUnknown   Boolean  @default(false) @map("time_unknown")
   mbti          String?
-  
+  zodiacSign     String?  @map("zodiac_sign")
+  risingSign     String?  @map("rising_sign")
+  moonSign       String?  @map("moon_sign")
+  lifePathNumber String?  @map("life_path_number")
+
   // Timestamps
   createdAt     DateTime @default(now()) @map("created_at")
   updatedAt     DateTime @updatedAt @map("updated_at")
-  
+
   // Indexes
   @@index([userId])
-  
+
   // Map to database table name
   @@map("user_profiles")
 }
@@ -40,16 +44,16 @@ model ResonanceFeedback {
   weight    Float    @default(1.0) // Initial weight of this feedback
   context   Json?    // Additional context about the feedback
   metadata  Json?    // Any additional metadata
-  
+
   // Timestamps
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
   expiresAt DateTime? @map("expires_at") // When this feedback should expire/decay
-  
+
   // Indexes
   @@index([userId, entityId, entityType])
   @@index([expiresAt])
-  
+
   // Map to database table name
   @@map("resonance_feedback")
 }
@@ -62,16 +66,16 @@ model ResonanceWeight {
   entityId   String?  @map("entity_id") // Optional: specific entity ID
   weight     Float    // The weight value
   decayRate  Float    @default(0.95) @map("decay_rate") // Per-day decay rate (0.95 = 5% decay per day)
-  
+
   // Timestamps
   updatedAt  DateTime @updatedAt @map("updated_at")
-  
+
   // Composite unique constraint
   @@unique([scope, scopeId, entityType, entityId], name: "resonance_weight_unique")
-  
+
   // Indexes
   @@index([scope, scopeId, entityType])
-  
+
   // Map to database table name
   @@map("resonance_weights")
 }

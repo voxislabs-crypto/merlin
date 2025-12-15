@@ -1,31 +1,18 @@
 import { NextResponse } from 'next/server';
-import { getAllPositions } from '../../../lib/ephemeris.js';
-
-// Define types inline to avoid module resolution issues
-interface PlanetPosition {
-  planet: string;
-  longitude: number;
-  latitude: number;
-  distance: number;
-  speed: number;
-  house: number;
-  sign: number;
-  signName: string;
-  degree: number;
-  minute: number;
-  second: number;
-  isMock: boolean;
-  confidence: number;
-  orb?: number;
-}
+import { getPlanetaryPositions, EphemerisData } from '../../../src/lib/ephemeris';
 
 interface ForecastResponse {
-  data: Record<string, PlanetPosition>;
+  data: Record<string, import('../../../src/lib/ephemeris').PlanetPosition>;
   timestamp: string;
   source: 'swiss-ephemeris' | 'mock';
   warning?: string;
   error?: string;
   details?: string;
+  metadata?: {
+    calculationTime: number;
+    julianDay: number;
+    timezone: string;
+  };
 }
 
 export async function GET(request: Request) {
@@ -51,30 +38,23 @@ export async function GET(request: Request) {
       );
     }
 
-    // Get positions with fallback to mock data if real ephemeris fails
-    try {
-      const positions = await getAllPositions(date, lat, lon);
-      const response: ForecastResponse = {
-        data: positions,
-        timestamp: new Date().toISOString(),
-        source: 'swiss-ephemeris',
-      };
-      
-      return NextResponse.json(response);
-    } catch (error) {
-      console.error('Error getting ephemeris data, falling back to mock data:', error);
-      const mockPositions = await getAllPositions(date, lat, lon); // This will use mock data
-      const response: ForecastResponse = {
-        data: mockPositions,
-        timestamp: new Date().toISOString(),
-        source: 'mock',
-        warning: 'Using mock data - ' + (error instanceof Error ? error.message : 'Unknown error'),
-        error: 'Failed to load ephemeris data',
-        details: error instanceof Error ? error.stack : undefined
-      };
-      
-      return NextResponse.json(response);
-    }
+    // Get positions using the new ephemeris implementation
+    const ephemerisData: EphemerisData = await getPlanetaryPositions({
+      date,
+      latitude: lat,
+      longitude: lon,
+      includeHouses: true,
+      includeAspects: false
+    });
+    
+    const response: ForecastResponse = {
+      data: ephemerisData.positions,
+      timestamp: ephemerisData.timestamp.toISOString(),
+      source: ephemerisData.source,
+      metadata: ephemerisData.metadata
+    };
+    
+    return NextResponse.json(response);
   } catch (error) {
     console.error('Error in forecast API:', error);
     return NextResponse.json(

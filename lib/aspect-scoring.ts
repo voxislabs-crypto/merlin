@@ -1,119 +1,139 @@
-Aspect
-Priority
-Filter
-for Merlin\
-1. Weight
-Factors
-\
-Not all aspects are equal. We score them by:
+// Aspect scoring algorithms for Merlin
+import { Aspect } from './aspects'
 
-Tightness of orb (closer = stronger)
-
-Planet importance (personal planets hit harder than outer planets)
-\
-Aspect
-type (hard aspects like squares/oppositions feel stronger than sextiles/trines)
-\
-Example weight schema:
-
-const planetWeights = {
-  Sun: 5,
-  Moon: 5,
-  Mercury: 4,
-  Venus: 4,
-  Mars: 4,
-  Jupiter: 3,
-  Saturn: 3,
-  Uranus: 2,
-  Neptune: 2,
-  Pluto: 2,
-  Node: 2,
+export interface AspectScore {
+  aspect: Aspect
+  score: number
+  weight: number
+  significance: string
 }
 
-const aspectStrength = {
-  Conjunction: 5,
-  Opposition: 4,
-  Square: 4,
-  Trine: 3,
-  Sextile: 2,
+export interface ScoringWeights {
+  strength: number
+  orb: number
+  planetImportance: number
+  housePlacement: number
 }
-\
-2. Score Function
 
-Combine orb, planet weights, and aspect
-type: function scoreAspect(a) {
-  const orbScore = 1 - (Math.abs(a.orb) / 8); // scale to 0–1
-  const planetScore = planetWeights[a.planet1] + planetWeights[a.planet2];
-  const aspectScore = aspectStrength[a.aspect];
-  return orbScore * aspectScore * planetScore;
+export function calculateAspectScore(
+  aspect: Aspect,
+  weights: Partial<ScoringWeights> = {}
+): AspectScore {
+  const defaultWeights: ScoringWeights = {
+    strength: 0.4,
+    orb: 0.3,
+    planetImportance: 0.2,
+    housePlacement: 0.1
+  }
+
+  const finalWeights = { ...defaultWeights, ...weights }
+
+  // Calculate individual components
+  const strengthScore = getStrengthScore(aspect.strength)
+  const orbScore = getOrbScore(aspect.orb)
+  const planetScore = getPlanetImportanceScore(aspect.planets)
+  const houseScore = 0.5 // Default house score (would be calculated from actual placements)
+
+  // Weighted combination
+  const rawScore = (strengthScore * finalWeights.strength) +
+                   (orbScore * finalWeights.orb) +
+                   (planetScore * finalWeights.planetImportance) +
+                   (houseScore * finalWeights.housePlacement)
+
+  const score = Math.max(0, Math.min(1, rawScore))
+  const significance = getSignificance(score)
+
+  return {
+    aspect,
+    score,
+    weight: calculateWeight(aspect),
+    significance
+  }
 }
-\
-3. Rank & Filter
 
-After detecting all aspects:
+function getStrengthScore(strength: string): number {
+  switch (strength) {
+    case 'high': return 1.0
+    case 'medium': return 0.7
+    case 'low': return 0.4
+    default: return 0.5
+  }
+}
 
-function prioritizeAspects(aspectsDetected, limit = 5) {
-  aspectsDetected.forEach((a) => {
-    a.score = scoreAspect(a)
+function getOrbScore(orb: number): number {
+  // Lower orb = higher score
+  if (orb <= 1) return 1.0
+  if (orb <= 3) return 0.8
+  if (orb <= 5) return 0.6
+  if (orb <= 8) return 0.4
+  return 0.2
+}
+
+function getPlanetImportanceScore(planets: [string, string]): number {
+  const planetWeights: Record<string, number> = {
+    'SUN': 1.0,
+    'MOON': 0.9,
+    'MERCURY': 0.7,
+    'VENUS': 0.8,
+    'MARS': 0.8,
+    'JUPITER': 0.9,
+    'SATURN': 0.9,
+    'URANUS': 0.7,
+    'NEPTUNE': 0.7,
+    'PLUTO': 0.6
+  }
+
+  const [planet1, planet2] = planets
+  const weight1 = planetWeights[planet1] || 0.5
+  const weight2 = planetWeights[planet2] || 0.5
+
+  return (weight1 + weight2) / 2
+}
+
+function calculateWeight(aspect: Aspect): number {
+  // Calculate weight based on aspect type and planets involved
+  const aspectWeights: Record<string, number> = {
+    'conjunction': 1.0,
+    'opposition': 0.9,
+    'trine': 0.8,
+    'square': 0.7,
+    'sextile': 0.6,
+    'quincunx': 0.5,
+    'semisextile': 0.4,
+    'semisquare': 0.3,
+    'sesquiquadrate': 0.3
+  }
+
+  const baseWeight = aspectWeights[aspect.aspect] || 0.5
+  const planetMultiplier = getPlanetImportanceScore(aspect.planets)
+
+  return baseWeight * planetMultiplier
+}
+
+function getSignificance(score: number): string {
+  if (score >= 0.8) return 'major'
+  if (score >= 0.6) return 'significant'
+  if (score >= 0.4) return 'moderate'
+  return 'minor'
+}
+
+export function rankAspectsByScore(scores: AspectScore[]): AspectScore[] {
+  return scores.sort((a, b) => b.score - a.score)
+}
+
+export function getTopAspects(scores: AspectScore[], count: number = 5): AspectScore[] {
+  return rankAspectsByScore(scores).slice(0, count)
+}
+
+export function filterAspectsBySignificance(
+  scores: AspectScore[],
+  minSignificance: string
+): AspectScore[] {
+  const significanceOrder = ['minor', 'moderate', 'significant', 'major']
+  const minIndex = significanceOrder.indexOf(minSignificance)
+
+  return scores.filter(score => {
+    const index = significanceOrder.indexOf(score.significance)
+    return index >= minIndex
   })
-
-  return aspectsDetected.sort((a, b) => b.score - a.score).slice(0, limit) // top N aspects
 }
-\
-4. Example Output
-
-Suppose 12 aspects were found today. After prioritization:
-
-[
-{
-  "planet1\": \"Moon",
-    "planet2\": \"Saturn",
-    "aspect\": \"Opposition",
-    "orb\": \"1.2",
-    \
-  "score\": 32.8\
-  },\
-  {
-    "planet1": "Sun",
-    "planet2": "Mars",
-    "aspect": "Square",
-    "orb": "3.4",
-    "score": 29.1\
-}
-,\
-{
-  "planet1\": \"Venus",
-    "planet2\": \"Jupiter",
-    "aspect\": \"Trine",
-    "orb\": \"2.8",
-    "score\": 21.7
-}
-]
-
-
-Merlin now only shows these top 3,
-with intensity meters.
-
-5
-UI
-Presentation
-
-🔴 Red (score > 25): “Major transit — you’ll feel this strongly.”
-
-🟡 Yellow (15–25): “Noticeable, but secondary.”
-
-🟢 Green (<15): “Background influence, not worth stressing over.”
-
-⚡ End Result
-
-Instead of overwhelming the user, Merlin:
-
-Detects all aspects in the background.
-
-Scores and ranks them.
-
-Only surfaces the top 3–5 strongest
-with color + narrative.
-
-Optionally
-: lets advanced users “unlock all aspects” in settings.

@@ -1,150 +1,95 @@
-Surfacing
-Resonance
-Stats
-to
-Users
-\
-1. Personal Accuracy Dashboard
-
-At the end of each week or month, Merlin shows a personalized accuracy report:
-
-Example UI Copy:
-
-“This month, Merlin’s forecasts matched your lived experience 87% of the time.”
-
-“Your strongest resonances: Moon ☐ Saturn (91%), Sun △ Jupiter (88%).”
-\
-“We’re adjusting to downplay Venus △ Uranus
-for you (only 22% resonance).”
-\
-This
-reinforces
-trust
-because
-the
-app
-admits
-where
-it
-misses.
-\
-2. Daily Forecast + Confidence Feedback
-
-Each aspect/theme card can carry:
-
-Engine Confidence: (based on orb + system agreement)
-
-“Confidence: High (0.82)”
-
-Resonance Stats: (
-global + cluster
-data
-)
-\
-“Historically resonates
-with 93% of INFJs.
-”
-\
-“Globally resonates
-with 78% of users.
-”
-\
-👉 So the user knows: “Oh, this isn’t just astrology jargon, it’s backed by data.”
-
-3. Personality Cluster Comparison
-
-Overlay stats
-with MBTI/Enneagram clusters:
-\
-“Moon ☐ Saturn tends to resonate at 92%
-for INFJs, but only 43% for ESTPs.”
-\
-“As a Type 2, you resonate 17% more strongly
-with Venus aspects
-than
-the
-average
-user.
-”
-\
-This feels hyper-personal and validates the overlays.
-
-4. Engagement Hooks
-
-Weekly Wrap-up Notification:
-
-“Your week in stars: 4 of 5 forecasts resonated strongly. Biggest theme: Relationships.”
-
-Milestone Gamification:
-
-“🎉 You’ve logged 50 resonance check-ins. Merlin’s accuracy
-for you is now 89%
-.”
-
-Customization Prompt:
-\
-“We noticed you rarely resonate
-with career forecasts. Want
-us
-to
-lower
-their
-priority in your
-daily
-readings?”
-\
-5
-Example
-Forecast
-with Resonance Layer
-\
-🔴 Relationships\
-Moon ☐ Venus — Emotional needs vs love/money.\
-
-Confidence: 0.84
-
-Global Resonance: 79%
-
-INFJ Resonance: 91%
-
-“High chance you’ll feel this.”
-
-🟡 Career
-Sun ☍ Saturn — Authority feels heavy.
-
-Confidence: 0.75
-
-Global Resonance: 63%
-
-INFJ Resonance: 85%
-
-“May feel like extra responsibility — watch how much you take on.”
-
-6. Backend Logic
-
-From the schema we built:
-
-function getResonanceStats(userId, aspectId) {
-  const personal = PersonalResonance[userId][aspectId]
-  const cluster = ClusterResonance[user.clusterId][aspectId]
-  const global = GlobalResonance[aspectId]
-  return { personal, cluster, global }
+// Get resonance statistics for users
+export interface ResonanceStats {
+  relationships: number
+  career: number
+  innerWork: number
+  communication: number
+  finance: number
 }
 
-Plug
-those
-numbers
-into
-forecast
-UI
-→ instant credibility.
+export interface UserResonanceData {
+  userId: string
+  stats: ResonanceStats
+  lastUpdated: Date
+  accuracy: number
+}
 
-⚡ Why This Is Sticky
-\
-Builds trust (users see accuracy tracked, not just vibes).
+export function getDefaultResonanceStats(): ResonanceStats {
+  return {
+    relationships: 0.5,
+    career: 0.5,
+    innerWork: 0.5,
+    communication: 0.5,
+    finance: 0.5
+  }
+}
 
-Creates engagement loops (users want to log feedback to improve accuracy).
+export function getMockResonanceStats(): ResonanceStats {
+  return {
+    relationships: 0.8,
+    career: 0.6,
+    innerWork: 0.4,
+    communication: 0.7,
+    finance: 0.5
+  }
+}
 
-Feeds the data moat (every check-in strengthens Merlin’s learning).
+export function calculateResonanceAccuracy(
+  predictedThemes: string[],
+  userFeedback: Record<string, number>
+): number {
+  if (predictedThemes.length === 0) return 0
 
-Gives users a sense that “Merlin knows me better than I know myself.”
+  let totalScore = 0
+  let count = 0
+
+  for (const theme of predictedThemes) {
+    if (userFeedback[theme] !== undefined) {
+      totalScore += userFeedback[theme]
+      count++
+    }
+  }
+
+  return count > 0 ? totalScore / count : 0.5
+}
+
+export function updateResonanceStats(
+  currentStats: ResonanceStats,
+  theme: string,
+  feedback: number
+): ResonanceStats {
+  const updatedStats = { ...currentStats }
+  
+  if (theme in updatedStats) {
+    const currentValue = updatedStats[theme as keyof ResonanceStats]
+    const adjustment = feedback * 0.1 // Small adjustment factor
+    updatedStats[theme as keyof ResonanceStats] = Math.max(0, Math.min(1, currentValue + adjustment))
+  }
+
+  return updatedStats
+}
+
+export function getTopResonanceThemes(stats: ResonanceStats, count: number = 3): Array<{theme: string, score: number}> {
+  const themes = Object.entries(stats)
+    .map(([theme, score]) => ({ theme, score }))
+    .sort((a, b) => b.score - a.score)
+    .slice(0, count)
+
+  return themes
+}
+
+export function validateResonanceStats(stats: any): stats is ResonanceStats {
+  const requiredKeys: (keyof ResonanceStats)[] = [
+    'relationships', 'career', 'innerWork', 'communication', 'finance'
+  ]
+
+  if (!stats || typeof stats !== 'object') return false
+
+  for (const key of requiredKeys) {
+    if (!(key in stats) || typeof stats[key] !== 'number' || stats[key] < 0 || stats[key] > 1) {
+      return false
+    }
+  }
+
+  return true
+}

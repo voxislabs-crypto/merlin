@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getWeeklyForecast } from '../../../lib/forecast-engine.js';
+import { getWeeklyForecast } from '../../../lib/forecast-engine';
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);

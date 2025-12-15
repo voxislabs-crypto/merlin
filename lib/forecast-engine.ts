@@ -1,6 +1,6 @@
-import { getAllPositions } from './ephemeris.js';
-import { detectAspects } from './aspects.js';
-import type { Aspect } from './aspects.js';
+import { getPlanetaryPositions } from '../src/lib/ephemeris';
+import { detectAspects } from './aspects';
+import type { Aspect } from './aspects';
 
 // Simple theme generator based on aspects
 function generateThemes(aspects: any[]): { primaryTheme: string; supportingThemes: string[] } {
@@ -67,7 +67,12 @@ export async function getDailyForecast(
   try {
     try {
     // Get planetary positions
-    const positions = await getAllPositions(date, location.latitude, location.longitude);
+    const ephemerisData = await getPlanetaryPositions({
+      date,
+      latitude: location.latitude,
+      longitude: location.longitude
+    });
+    const positions = ephemerisData.positions;
     
     // Calculate aspects
     const aspects = detectAspects(positions);

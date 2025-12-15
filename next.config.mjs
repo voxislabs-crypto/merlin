@@ -12,25 +12,21 @@ const nextConfig = {
   // Enable React strict mode
   reactStrictMode: true,
   
+  // Disable tracing to avoid permission issues
+  logging: {
+    fetches: {
+      fullUrl: false,
+    },
+  },
+  
   // Configure webpack to handle TypeScript, JSX, and native modules
   webpack: (config, { isServer }) => {
     // Add TypeScript and JSX to the list of extensions to resolve
     config.resolve.extensions = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.json'];
     
-    // Exclude the native module from client-side bundle
-    if (!isServer) {
-      config.resolve.fallback = {
-        ...config.resolve.fallback,
-        'swisseph': false,
-        'swisseph/eph': false
-      };
-    }
+    // No need to exclude swisseph anymore - using sweph-wasm
     
-    // Handle native modules
-    config.module.rules.push({
-      test: /\.node$/,
-      use: 'node-loader',
-    });
+    // No longer need native node module handling
     
     // Handle TypeScript files in the app directory
     config.module.rules.push({
@@ -63,11 +59,6 @@ const nextConfig = {
   
   // Support for static exports
   output: 'standalone',
-  
-  // Disable server components external packages
-  experimental: {
-    serverComponentsExternalPackages: ['swisseph'],
-  },
   
   // Enable server components and actions
   experimental: {

@@ -18,8 +18,9 @@ import {
 } from "lucide-react"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { assignThemes, themeDetails, type ThemeAssignment } from "@/lib/themes"
+import { cn } from "@/lib/utils"
 import { detectAspects } from "@/lib/aspects"
-import { getAllPositions } from "@/lib/ephemeris"
+import { getPlanetaryPositions, ZODIAC_SIGNS, PLANETS } from '@/src/lib/ephemeris';
 
 interface User {
   id: string
@@ -51,25 +52,64 @@ export default function MerlinApp() {
   const [name, setName] = useState("")
 
   useEffect(() => {
-    if (hasCompletedOnboarding && birthData) {
-      // Get planetary positions and aspects
-      const positions = getAllPositions(new Date(), birthData.birthLocation)
-      const aspects = detectAspects(positions)
+    const calculateThemeAssignment = async () => {
+      if (hasCompletedOnboarding && birthData) {
+        try {
+          // Get planetary positions and aspects
+          // Parse birthLocation to get lat/lon (assuming format "lat,lon" or city name)
+          // For now, using default coordinates - in production you'd geocode the location
+          const defaultLat = 40.7128; // New York
+          const defaultLon = -74.0060;
+          const positions = await getAllPositions(new Date(), defaultLat, defaultLon)
+          const rawAspects = detectAspects(positions)
 
-      // Mock resonance stats (in production, this would come from database)
-      const mockResonanceStats = {
-        relationships: 0.8,
-        career: 0.6,
-        innerWork: 0.4,
-        communication: 0.7,
-        finance: 0.5,
+          // Transform aspects to match assignThemes expected format
+          const transformedAspects = rawAspects.map(aspect => ({
+            planets: aspect.planets,
+            aspect: aspect.aspect,
+            strength: aspect.strength === 'high' ? 3 : aspect.strength === 'medium' ? 2 : 1,
+            orbTightness: aspect.orb
+          }))
+
+          // Mock resonance stats (in production, this would come from database)
+          const mockResonanceStats = {
+            relationships: 0.8,
+            career: 0.6,
+            innerWork: 0.4,
+            communication: 0.7,
+            finance: 0.5,
+          }
+
+          // Assign themes with prioritization
+          const assignment = assignThemes(transformedAspects, undefined, mockResonanceStats)
+          setThemeAssignment(assignment)
+        } catch (error) {
+          console.error('Error calculating theme assignment:', error)
+        }
       }
-
-      // Assign themes with prioritization
-      const assignment = assignThemes(aspects, undefined, mockResonanceStats)
-      setThemeAssignment(assignment)
     }
+
+    calculateThemeAssignment()
   }, [hasCompletedOnboarding, birthData])
+
+  // Check localStorage for onboarding completion on mount
+  useEffect(() => {
+    const hasCompleted = localStorage.getItem('hasCompletedOnboarding')
+    const savedBirthData = localStorage.getItem('birthData')
+    
+    if (hasCompleted === 'true') {
+      setHasCompletedOnboarding(true)
+      
+      if (savedBirthData) {
+        try {
+          const parsed = JSON.parse(savedBirthData)
+          setBirthData(parsed)
+        } catch (error) {
+          console.error('Error parsing saved birth data:', error)
+        }
+      }
+    }
+  }, [])
 
   const handleAuth = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -83,14 +123,19 @@ export default function MerlinApp() {
       }
       setUser(mockUser)
       if (authMode === "signin") {
-        setHasCompletedOnboarding(true)
-        setBirthData({
+        const birthData = {
           fullName: mockUser.name,
           birthDate: "1990-08-14",
           birthTime: "14:30",
           birthLocation: "Norfolk, Virginia",
           timeUnknown: false,
-        })
+        }
+        setHasCompletedOnboarding(true)
+        setBirthData(birthData)
+        
+        // Save to localStorage
+        localStorage.setItem('hasCompletedOnboarding', 'true')
+        localStorage.setItem('birthData', JSON.stringify(birthData))
       }
       setIsLoading(false)
     }, 1500)
@@ -105,6 +150,8 @@ export default function MerlinApp() {
     setName("")
     setCurrentView("dashboard")
     setThemeAssignment(null)
+    localStorage.removeItem('hasCompletedOnboarding')
+    localStorage.removeItem('birthData')
   }
 
   if (user && hasCompletedOnboarding && currentView === "dashboard" && themeAssignment) {
@@ -167,19 +214,34 @@ export default function MerlinApp() {
             </div>
 
             <Card
-              className={`border-2 border-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-500" : "green-500"}/30 bg-gradient-to-br from-card to-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-500" : "green-500"}/5 cosmic-glow`}
+              className={cn(
+                "border-2 border-destructive/30 bg-gradient-to-br from-card to-destructive/5 cosmic-glow",
+                primaryDetails.color === "yellow" && "border-yellow-500/30 to-yellow-500/5",
+                primaryDetails.color === "green" && "border-green-500/30 to-green-500/5",
+                primaryDetails.color !== "red" && primaryDetails.color !== "yellow" && primaryDetails.color !== "green" && "border-green-500/30 to-green-500/5"
+              )}
             >
               <CardHeader>
                 <div className="flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div
-                      className={`w-3 h-3 bg-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-500" : "green-500"} rounded-full animate-pulse`}
+                      className={cn(
+                      "w-3 h-3 rounded-full animate-pulse",
+                      primaryDetails.color === "red" && "bg-destructive",
+                      primaryDetails.color === "yellow" && "bg-yellow-500",
+                      (primaryDetails.color === "green" || (primaryDetails.color !== "red" && primaryDetails.color !== "yellow")) && "bg-green-500"
+                    )}
                     ></div>
                     <TooltipProvider>
                       <Tooltip>
                         <TooltipTrigger asChild>
                           <CardTitle
-                            className={`text-xl text-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-600" : "green-600"} cursor-help`}
+                            className={cn(
+                            "text-xl cursor-help",
+                            primaryDetails.color === "red" && "text-destructive",
+                            primaryDetails.color === "yellow" && "text-yellow-600",
+                            (primaryDetails.color === "green" || (primaryDetails.color !== "red" && primaryDetails.color !== "yellow")) && "text-green-600"
+                          )}
                           >
                             {primaryDetails.emoji} Theme: {primaryDetails.name}
                           </CardTitle>
@@ -221,10 +283,20 @@ export default function MerlinApp() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div
-                  className={`bg-gradient-to-r from-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-500" : "green-500"}/10 to-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-500" : "green-500"}/5 p-4 rounded-lg border border-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-500" : "green-500"}/20`}
+                  className={cn(
+                    "bg-gradient-to-r p-4 rounded-lg border",
+                    primaryDetails.color === "red" && "from-destructive/10 to-destructive/5 border-destructive/20",
+                    primaryDetails.color === "yellow" && "from-yellow-500/10 to-yellow-500/5 border-yellow-500/20",
+                    (primaryDetails.color === "green" || (primaryDetails.color !== "red" && primaryDetails.color !== "yellow")) && "from-green-500/10 to-green-500/5 border-green-500/20"
+                  )}
                 >
                   <div
-                    className={`text-sm font-semibold text-${primaryDetails.color === "red" ? "destructive" : primaryDetails.color === "yellow" ? "yellow-600" : "green-600"} mb-2`}
+                    className={cn(
+                    "text-sm font-semibold mb-2",
+                    primaryDetails.color === "red" && "text-destructive",
+                    primaryDetails.color === "yellow" && "text-yellow-600",
+                    (primaryDetails.color === "green" || (primaryDetails.color !== "red" && primaryDetails.color !== "yellow")) && "text-green-600"
+                  )}
                   >
                     INFJ Overlay:
                   </div>

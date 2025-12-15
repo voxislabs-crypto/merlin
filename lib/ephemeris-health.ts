@@ -1,4 +1,4 @@
-import { getAllPositions } from './ephemeris.js';
+import { getPlanetaryPositions } from '../src/lib/ephemeris';
 
 let isEphemerisAvailable: boolean | null = null;
 let lastCheck: Date | null = null;
@@ -19,7 +19,7 @@ export async function checkEphemerisStatus(): Promise<EphemerisHealthStatus> {
   if (isEphemerisAvailable === null) {
     try {
       // Try to get positions for the current date
-      await getAllPositions(new Date(), 0, 0);
+      await getPlanetaryPositions({ date: new Date(), latitude: 0, longitude: 0 });
       isEphemerisAvailable = true;
     } catch (error) {
       isEphemerisAvailable = false;
