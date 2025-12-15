@@ -10,6 +10,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model UserProfile {
+  id            String   @id @default(uuid())
+  userId        String   @unique @map("user_id")
+  name          String?  @map("name")
+  birthDate     DateTime? @map("birth_date")
+  birthTime     String?  @map("birth_time")
+  birthLocation String?  @map("birth_location")
+  timeUnknown   Boolean  @default(false) @map("time_unknown")
+  mbti          String?
+  
+  // Timestamps
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+  
+  // Indexes
+  @@index([userId])
+  
+  // Map to database table name
+  @@map("user_profiles")
+}
+
 model ResonanceFeedback {
   id        String   @id @default(uuid())
   userId    String   @map("user_id") // Optional: for user-specific feedback

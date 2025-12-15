@@ -33,7 +33,9 @@ export default function RootLayout({
           </div>
         )}
         <Suspense fallback={null}>
-          {children}
+          <div className={process.env.NODE_ENV === 'development' ? 'pt-16' : ''}>
+            {children}
+          </div>
         </Suspense>
       </body>
     </html>

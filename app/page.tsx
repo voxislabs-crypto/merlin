@@ -410,7 +410,7 @@ export default function MerlinApp() {
           <div>
             <h3 className="text-xl font-semibold text-foreground mb-4">Cosmic Utilities</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              <Card className="hover:shadow-lg transition-all cursor-pointer border border-primary/30 hover:border-primary/50">
+              <Card className="hover:shadow-lg transition-all cursor-pointer border border-primary/30 hover:border-primary/50" onClick={() => alert('Ask Merlin feature coming soon!')}>
                 <CardHeader className="text-center pb-4">
                   <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <span className="text-lg">🔮</span>
@@ -418,7 +418,7 @@ export default function MerlinApp() {
                   <CardTitle className="text-sm">Ask Merlin Anything</CardTitle>
                 </CardHeader>
               </Card>
-              <Card className="hover:shadow-lg transition-all cursor-pointer border border-secondary/30 hover:border-secondary/50">
+              <Card className="hover:shadow-lg transition-all cursor-pointer border border-secondary/30 hover:border-secondary/50" onClick={() => alert('Upload feature coming soon!')}>
                 <CardHeader className="text-center pb-4">
                   <div className="w-10 h-10 bg-secondary/20 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <span className="text-lg">📂</span>
@@ -426,7 +426,7 @@ export default function MerlinApp() {
                   <CardTitle className="text-sm">Upload Birth Chart</CardTitle>
                 </CardHeader>
               </Card>
-              <Card className="hover:shadow-lg transition-all cursor-pointer border border-accent/30 hover:border-accent/50">
+              <Card className="hover:shadow-lg transition-all cursor-pointer border border-accent/30 hover:border-accent/50" onClick={() => alert('Astro Web Insights coming soon!')}>
                 <CardHeader className="text-center pb-4">
                   <div className="w-10 h-10 bg-accent/20 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <span className="text-lg">🌐</span>
@@ -434,7 +434,7 @@ export default function MerlinApp() {
                   <CardTitle className="text-sm">Astro Web Insights</CardTitle>
                 </CardHeader>
               </Card>
-              <Card className="hover:shadow-lg transition-all cursor-pointer border border-primary/30 hover:border-primary/50">
+              <Card className="hover:shadow-lg transition-all cursor-pointer border border-primary/30 hover:border-primary/50" onClick={() => alert('View Birth Chart coming soon!')}>
                 <CardHeader className="text-center pb-4">
                   <div className="w-10 h-10 bg-primary/20 rounded-lg flex items-center justify-center mx-auto mb-2">
                     <span className="text-lg">⭐</span>

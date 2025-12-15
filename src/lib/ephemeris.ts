@@ -27,5 +27,79 @@ async function initializeEphemeris() {
 
   try {
     // Try Penguin Alpha first
-    penguinAlpha = await import('[penguin-alpha/core');](cci:4://file://penguin-alpha/core');:0:0-0:0)
-    console.log('
+    penguinAlpha = await import('@penguin-alpha/core');
+    console.log('✅ Penguin Alpha loaded successfully');
+    usingFallback = false;
+    return true;
+  } catch (error) {
+    console.warn('⚠️ Penguin Alpha failed, trying fallback...');
+    try {
+      // Fallback to swe-1 WASM
+      fallbackWasm = await import('swe-1');
+      console.log('✅ Using swe-1 WASM fallback');
+      usingFallback = true;
+      return true;
+    } catch (fallbackError) {
+      console.error('❌ Both ephemeris libraries failed');
+      return false;
+    }
+  }
+}
+
+// Drop-in swisseph functions
+export function swe_set_ephe_path(path?: string) {
+  // Initialize if needed
+  if (!penguinAlpha && !fallbackWasm) {
+    initializeEphemeris();
+  }
+  
+  if (penguinAlpha) {
+    return penguinAlpha.setEphePath?.(path);
+  }
+  
+  if (fallbackWasm) {
+    return fallbackWasm.setEphePath?.(path);
+  }
+}
+
+export function swe_calc_ut(jd: number, planet: number, flags: number) {
+  if (!penguinAlpha && !fallbackWasm) {
+    initializeEphemeris();
+  }
+  
+  if (penguinAlpha) {
+    return penguinAlpha.calcUt?.(jd, planet, flags);
+  }
+  
+  if (fallbackWasm) {
+    return fallbackWasm.calcUt?.(jd, planet, flags);
+  }
+  
+  throw new Error('Ephemeris not initialized');
+}
+
+export function swe_houses_ex(jd: number, lat: number, lon: number, hsys: string) {
+  if (!penguinAlpha && !fallbackWasm) {
+    initializeEphemeris();
+  }
+  
+  if (penguinAlpha) {
+    return penguinAlpha.housesEx?.(jd, lat, lon, hsys);
+  }
+  
+  if (fallbackWasm) {
+    return fallbackWasm.housesEx?.(jd, lat, lon, hsys);
+  }
+  
+  throw new Error('Ephemeris not initialized');
+}
+
+export function swe_close() {
+  if (penguinAlpha) {
+    return penguinAlpha.close?.();
+  }
+  
+  if (fallbackWasm) {
+    return fallbackWasm.close?.();
+  }
+}
