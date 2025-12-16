@@ -1,19 +1,32 @@
-'use client'
+"use client"
 
 import { useState } from 'react'
+import { motion } from 'framer-motion'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
+import { StarfieldBackground } from '@/components/cosmic/StarfieldBackground'
+import { GlassmorphicCard } from '@/components/cosmic/GlassmorphicCard'
+import { CosmicButton } from '@/components/cosmic/CosmicButton'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
+import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react'
 
 export default function LoginPage() {
+  const router = useRouter()
+  const [isSignUp, setIsSignUp] = useState(false)
+  const [showPassword, setShowPassword] = useState(false)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState('')
+  
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState('')
-  const router = useRouter()
+  const [name, setName] = useState('')
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    setLoading(true)
+    setIsLoading(true)
     setError('')
 
     try {
@@ -25,18 +38,18 @@ export default function LoginPage() {
 
       if (error) throw error
 
-      // Refresh to update session and redirect
       router.refresh()
-      router.push('/')
+      router.push('/onboarding')
     } catch (error: any) {
       setError(error.message)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
-  const handleSignUp = async () => {
-    setLoading(true)
+  const handleSignUp = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
     setError('')
 
     try {
@@ -54,103 +67,171 @@ export default function LoginPage() {
     } catch (error: any) {
       setError(error.message)
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
 
+  const handleSubmit = isSignUp ? handleSignUp : handleLogin
+
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full space-y-8">
-        <div>
-          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
-            Sign in to your account
-          </h2>
-          <p className="mt-2 text-center text-sm text-gray-600">
-            Or{' '}
-            <button
-              onClick={handleSignUp}
-              className="font-medium text-blue-600 hover:text-blue-500"
-              disabled={loading}
-            >
-              create a new account
-            </button>
-          </p>
-        </div>
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+      <StarfieldBackground />
+      
+      <div className="relative z-10 w-full max-w-md">
+        <Link href="/">
+          <motion.button
+            className="flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8 transition-colors"
+            whileHover={{ x: -5 }}
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Home</span>
+          </motion.button>
+        </Link>
         
-        {error && (
-          <div className="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded">
-            {error}
-          </div>
-        )}
-
-        <form className="mt-8 space-y-6" onSubmit={handleLogin}>
-          <div className="rounded-md shadow-sm -space-y-px">
-            <div>
-              <label htmlFor="email-address" className="sr-only">
-                Email address
-              </label>
-              <input
-                id="email-address"
-                name="email"
-                type="email"
-                autoComplete="email"
-                required
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-t-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Email address"
-                disabled={loading}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="sr-only">
-                Password
-              </label>
-              <input
-                id="password"
-                name="password"
-                type="password"
-                autoComplete="current-password"
-                required
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="appearance-none rounded-none relative block w-full px-3 py-2 border border-gray-300 placeholder-gray-500 text-gray-900 rounded-b-md focus:outline-none focus:ring-blue-500 focus:border-blue-500 focus:z-10 sm:text-sm"
-                placeholder="Password"
-                disabled={loading}
-              />
-            </div>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center">
-              <input
-                id="remember-me"
-                name="remember-me"
-                type="checkbox"
-                className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-              />
-              <label htmlFor="remember-me" className="ml-2 block text-sm text-gray-900">
-                Remember me
-              </label>
-            </div>
-
-            <div className="text-sm">
-              <a href="#" className="font-medium text-blue-600 hover:text-blue-500">
-                Forgot your password?
-              </a>
-            </div>
-          </div>
-
-          <div>
-            <button
-              type="submit"
-              disabled={loading}
-              className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+        <GlassmorphicCard className="p-8" glow="cosmic">
+          <div className="text-center mb-8">
+            <motion.div
+              initial={{ scale: 0 }}
+              animate={{ scale: 1 }}
+              transition={{ type: "spring", duration: 0.6 }}
+              className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary cosmic-glow-static mb-4"
             >
-              {loading ? 'Signing in...' : 'Sign in'}
-            </button>
+              <Sparkles className="w-8 h-8 text-white" />
+            </motion.div>
+            
+            <h1 className="text-3xl font-serif font-bold mb-2 text-foreground">
+              {isSignUp ? 'Begin Your Journey' : 'Welcome Back'}
+            </h1>
+            <p className="text-muted-foreground">
+              {isSignUp 
+                ? 'Create your account to unlock cosmic insights' 
+                : 'Sign in to access your personal oracle'}
+            </p>
           </div>
-        </form>
+          
+          {error && (
+            <div className="mb-4 p-3 rounded-lg bg-destructive/10 border border-destructive/50 text-destructive text-sm">
+              {error}
+            </div>
+          )}
+          
+          <form onSubmit={handleSubmit} className="space-y-4">
+            {isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="name" className="text-foreground">Full Name</Label>
+                <Input
+                  id="name"
+                  type="text"
+                  placeholder="Enter your name"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  className="glass-card border-border/50 focus:border-primary bg-input text-foreground placeholder:text-muted-foreground"
+                  required={isSignUp}
+                />
+              </div>
+            )}
+            
+            <div className="space-y-2">
+              <Label htmlFor="email" className="text-foreground">Email</Label>
+              <div className="relative">
+                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="your@email.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="glass-card border-border/50 focus:border-primary pl-10 bg-input text-foreground placeholder:text-muted-foreground"
+                  required
+                />
+              </div>
+            </div>
+            
+            {!isSignUp && (
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-foreground">Password</Label>
+                <div className="relative">
+                  <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    id="password"
+                    type={showPassword ? 'text' : 'password'}
+                    placeholder="Enter your password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    className="glass-card border-border/50 focus:border-primary pl-10 pr-10 bg-input text-foreground placeholder:text-muted-foreground"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
+                </div>
+              </div>
+            )}
+            
+            {!isSignUp && (
+              <div className="text-right">
+                <button
+                  type="button"
+                  className="text-sm text-primary hover:text-primary/80 transition-colors"
+                >
+                  Forgot password?
+                </button>
+              </div>
+            )}
+            
+            <CosmicButton
+              type="submit"
+              variant="primary"
+              size="lg"
+              fullWidth
+              disabled={isLoading}
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <motion.div
+                    className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                    animate={{ rotate: 360 }}
+                    transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  />
+                  {isSignUp ? 'Sending Magic Link...' : 'Signing In...'}
+                </span>
+              ) : (
+                isSignUp ? 'Send Magic Link' : 'Sign In'
+              )}
+            </CosmicButton>
+          </form>
+          
+          <div className="mt-6">
+            <div className="relative">
+              <Separator className="my-4" />
+              <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 px-2 bg-card text-xs text-muted-foreground">
+                OR
+              </span>
+            </div>
+            
+            <div className="text-center mt-6">
+              <p className="text-sm text-muted-foreground">
+                {isSignUp ? 'Already have an account?' : "Don't have an account?"}
+                {' '}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="text-primary hover:text-primary/80 font-medium transition-colors"
+                >
+                  {isSignUp ? 'Sign In' : 'Sign Up'}
+                </button>
+              </p>
+            </div>
+          </div>
+        </GlassmorphicCard>
+        
+        <p className="text-center text-xs text-muted-foreground mt-6">
+          By continuing, you agree to Merlin's Terms of Service and Privacy Policy
+        </p>
       </div>
     </div>
   )

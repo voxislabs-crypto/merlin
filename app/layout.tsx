@@ -4,7 +4,7 @@ import { Suspense } from "react"
 import "./globals.css"
 import { EphemerisStatusBanner } from "../components/EphemerisStatusBanner"
 
-// Using a system font stack for better performance and reliability
+// Cosmic fonts loaded via Google Fonts CDN in globals.css
 const fontVariables = {
   variable: "--font-sans",
   className: "font-sans"
@@ -24,9 +24,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={fontVariables.className} style={{
-        '--font-sans': '"Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif'
-      } as React.CSSProperties}>
+      <body className={fontVariables.className}>
         {process.env.NODE_ENV === 'development' && (
           <div className="fixed top-0 left-0 right-0 z-50">
             <EphemerisStatusBanner />

@@ -2,13 +2,18 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
+import { StarfieldBackground } from '@/components/cosmic/StarfieldBackground'
+import { GlassmorphicCard } from '@/components/cosmic/GlassmorphicCard'
+import { CosmicButton } from '@/components/cosmic/CosmicButton'
+import { LoadingOracle } from '@/components/cosmic/LoadingOracle'
+import { motion, AnimatePresence } from 'framer-motion'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Progress } from "@/components/ui/progress"
-import { ChevronLeft, ChevronRight, User, Calendar, MapPin, Brain, Sparkles, Moon, Star } from "lucide-react"
+import { Checkbox } from "@/components/ui/checkbox"
+import { ChevronLeft, ChevronRight, User, Calendar, MapPin, Brain, Sparkles, Moon, Star, ArrowLeft, ArrowRight } from "lucide-react"
 import { createClient } from "@/utils/supabase/client"
 
 interface OnboardingData {
@@ -224,6 +229,10 @@ export default function OnboardingPage() {
       }
       
       console.log("Profile saved successfully")
+      
+      // Refresh session to ensure middleware recognizes the completed profile
+      await supabase.auth.refreshSession()
+      
       // Store completion in localStorage and redirect to main app
       console.log("Saving to localStorage...")
       localStorage.setItem('hasCompletedOnboarding', 'true')
@@ -235,8 +244,9 @@ export default function OnboardingPage() {
         timeUnknown: data.timeUnknown,
         mbti: data.mbti
       }))
-      console.log("Redirecting to main app...")
-      window.location.href = "/"
+      console.log("Redirecting to dashboard...")
+      router.push('/dashboard')
+      router.refresh() // Force revalidate
     } catch (error: any) {
       console.error("Error saving onboarding data:", error)
       // Show error to user
@@ -263,96 +273,116 @@ export default function OnboardingPage() {
 
   const progress = (step / 4) * 100
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-900 via-blue-900 to-indigo-900 flex items-center justify-center p-4">
-      <div className="absolute inset-0 overflow-hidden">
-        <div className="absolute top-20 left-20 w-64 h-64 bg-purple-500 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute bottom-20 right-20 w-96 h-96 bg-blue-500 rounded-full filter blur-3xl opacity-20 animate-pulse"></div>
-        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-indigo-500 rounded-full filter blur-3xl opacity-10 animate-pulse"></div>
+  if (isLoading && step === 4) {
+    return (
+      <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+        <StarfieldBackground />
+        <div className="relative z-10">
+          <GlassmorphicCard className="p-12" glow="cosmic">
+            <LoadingOracle
+              message="Generating Your Birth Chart"
+              submessage="Calculating planetary positions and cosmic influences at your birth moment..."
+            />
+          </GlassmorphicCard>
+        </div>
       </div>
-      
-      <Card className="w-full max-w-md relative backdrop-blur-xl bg-white/10 border border-white/20 shadow-2xl">
-        <CardHeader className="text-center text-white">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-gradient-to-br from-purple-500 to-blue-500 rounded-full">
-              <Sparkles className="h-8 w-8 text-white" />
-            </div>
-          </div>
-          <CardTitle className="text-3xl font-bold bg-gradient-to-r from-purple-200 to-blue-200 bg-clip-text text-transparent">
-            Welcome to Merlin
-          </CardTitle>
-          <CardDescription className="text-purple-200">
-            Your personal cosmic oracle awaits
-          </CardDescription>
-          <div className="mt-6">
-            <Progress value={progress} className="w-full h-2 bg-white/20" />
-            <p className="text-sm text-purple-200 mt-2">Step {step} of 4</p>
-          </div>
-        </CardHeader>
+    )
+  }
 
-        <CardContent className="space-y-6 text-white">
+  return (
+    <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
+      <StarfieldBackground />
+      
+      <div className="relative z-10 w-full max-w-2xl">
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-sm font-medium text-muted-foreground">
+              Step {step} of 4
+            </h2>
+            <span className="text-sm font-medium text-primary">{Math.round(progress)}%</span>
+          </div>
+          <Progress value={progress} className="h-2" />
+        </div>
+
+        <GlassmorphicCard className="p-8" glow="cosmic">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={step}
+              initial={{ opacity: 0, x: 20 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -20 }}
+              transition={{ duration: 0.3 }}
+              className="space-y-6"
+            >
           {step === 1 && (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-purple-500/20 rounded-full">
-                  <User className="h-6 w-6 text-purple-300" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-primary/20 rounded-lg">
+                  <User className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-purple-200">Your Cosmic Identity</h3>
+                <div>
+                  <h2 className="text-2xl font-serif font-bold text-foreground">Your Cosmic Identity</h2>
+                  <p className="text-muted-foreground">Let's start with your name</p>
+                </div>
               </div>
-              <div className="space-y-4">
-                <Label htmlFor="fullName" className="text-purple-200 text-sm font-medium">Full Name</Label>
+              <div className="space-y-2">
+                <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
                 <Input
                   id="fullName"
                   value={data.fullName}
                   onChange={(e) => updateData("fullName", e.target.value)}
-                  placeholder="Enter your cosmic name"
-                  className="w-full bg-white/10 border-white/20 text-white placeholder-purple-300 focus:border-purple-400 focus:ring-purple-400"
+                  placeholder="Enter your full name"
+                  className="glass-card border-border/50 focus:border-primary bg-input text-foreground"
+                  autoFocus
                 />
-                <p className="text-xs text-purple-300">This name will be used to personalize your cosmic readings</p>
+                <p className="text-xs text-muted-foreground">
+                  Your name as it appears on official documents
+                </p>
               </div>
             </div>
           )}
 
           {step === 2 && (
-            <div className="space-y-6">
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-2 bg-blue-500/20 rounded-full">
-                  <Calendar className="h-6 w-6 text-blue-300" />
+            <div className="space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-primary/20 rounded-lg">
+                  <Calendar className="w-6 h-6 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-blue-200">Birth Celestial Alignment</h3>
+                <div>
+                  <h2 className="text-2xl font-serif font-bold text-foreground">Birth Celestial Alignment</h2>
+                  <p className="text-muted-foreground">When and where did you enter this world?</p>
+                </div>
               </div>
               
-              <div className="space-y-4">
-                <Label htmlFor="birthDate" className="text-blue-200 text-sm font-medium">Birth Date</Label>
+              <div className="space-y-2">
+                <Label htmlFor="birthDate" className="text-foreground">Birth Date</Label>
                 <Input
                   id="birthDate"
                   type="date"
                   value={data.birthDate}
                   onChange={(e) => updateData("birthDate", e.target.value)}
-                  className="w-full bg-white/10 border-white/20 text-white focus:border-blue-400 focus:ring-blue-400"
+                  className="glass-card border-border/50 focus:border-primary bg-input text-foreground"
                 />
               </div>
 
-              <div className="space-y-4">
-                <Label htmlFor="birthTime" className="text-blue-200 text-sm font-medium">Birth Time</Label>
+              <div className="space-y-2">
+                <Label htmlFor="birthTime" className="text-foreground">Birth Time</Label>
                 <Input
                   id="birthTime"
                   type="time"
                   value={data.birthTime}
                   onChange={(e) => updateData("birthTime", e.target.value)}
                   disabled={data.timeUnknown}
-                  className="w-full bg-white/10 border-white/20 text-white placeholder-blue-300 focus:border-blue-400 focus:ring-blue-400 disabled:opacity-50"
+                  className="glass-card border-border/50 focus:border-primary bg-input text-foreground disabled:opacity-50"
                 />
-                <div className="flex items-center space-x-3">
-                  <input
-                    type="checkbox"
+                <div className="flex items-center gap-2">
+                  <Checkbox
                     id="timeUnknown"
                     checked={data.timeUnknown}
-                    onChange={(e) => updateData("timeUnknown", e.target.checked)}
-                    className="rounded bg-white/10 border-white/20 text-blue-500 focus:ring-blue-400"
+                    onCheckedChange={(checked) => updateData("timeUnknown", checked as boolean)}
                   />
-                  <Label htmlFor="timeUnknown" className="text-sm text-blue-300">
-                    I don't know my birth time
+                  <Label htmlFor="timeUnknown" className="text-sm text-muted-foreground cursor-pointer">
+                    I don't know my exact birth time
                   </Label>
                 </div>
               </div>
@@ -448,49 +478,63 @@ export default function OnboardingPage() {
               </div>
             </div>
           )}
+            </motion.div>
+          </AnimatePresence>
 
-          <div className="flex justify-between pt-6">
-            <Button
-              variant="outline"
-              onClick={prevStep}
-              disabled={step === 1}
-              className="flex items-center space-x-2 bg-white/10 border-white/20 text-white hover:bg-white/20"
-            >
-              <ChevronLeft className="h-4 w-4" />
-              <span>Back</span>
-            </Button>
-
+          <div className="flex gap-4 mt-8">
+            {step > 1 && (
+              <CosmicButton variant="ghost" onClick={prevStep} className="flex-1">
+                <ArrowLeft className="w-4 h-4 mr-2" />
+                Back
+              </CosmicButton>
+            )}
             {step === 2 ? (
-              <Button
+              <CosmicButton
+                variant="primary"
                 onClick={handleStep2Complete}
                 disabled={!canProceed()}
-                className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                className="flex-1"
               >
-                <span>Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+                Continue
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </CosmicButton>
             ) : step === 4 ? (
-              <Button
+              <CosmicButton
+                variant="primary"
                 onClick={handleSubmit}
                 disabled={!canProceed() || isLoading}
-                className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                className="flex-1"
               >
-                <span>Complete Journey</span>
-                {isLoading && <div className="h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" />}
-              </Button>
+                {isLoading ? (
+                  <span className="flex items-center gap-2">
+                    <motion.div
+                      className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full"
+                      animate={{ rotate: 360 }}
+                      transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                    />
+                    Completing...
+                  </span>
+                ) : (
+                  <>
+                    <Sparkles className="w-4 h-4 mr-2" />
+                    Enter the Oracle
+                  </>
+                )}
+              </CosmicButton>
             ) : (
-              <Button
+              <CosmicButton
+                variant="primary"
                 onClick={nextStep}
                 disabled={!canProceed()}
-                className="flex items-center space-x-2 bg-gradient-to-r from-purple-500 to-blue-500 hover:from-purple-600 hover:to-blue-600 text-white"
+                className="flex-1"
               >
-                <span>Next</span>
-                <ChevronRight className="h-4 w-4" />
-              </Button>
+                Continue
+                <ArrowRight className="w-4 h-4 ml-2" />
+              </CosmicButton>
             )}
           </div>
-        </CardContent>
-      </Card>
+        </GlassmorphicCard>
+      </div>
     </div>
   )
 }

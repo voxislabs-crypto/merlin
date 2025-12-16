@@ -136,19 +136,24 @@ async function getLocationCoordinatesFromDatabase(location: string): Promise<{ l
   return { lat: 40.7128, lon: -74.0060 };
 }
 
-// Calculate moon sign using real ephemeris data
+// Calculate moon sign using real sweph-wasm ephemeris data
 function calculateMoonSign(positions: any): string {
   try {
     const moonPosition = positions.MOON;
-    if (!moonPosition || moonPosition.isMock) {
-      console.warn('Moon position not available or using mock data');
+    if (!moonPosition) {
+      console.error('Moon position not available from sweph-wasm');
       return 'Unknown';
     }
     
     const moonLongitude = moonPosition.longitude;
+    if (typeof moonLongitude !== 'number') {
+      console.error('Moon longitude not available from sweph-wasm');
+      return 'Unknown';
+    }
+    
     const signIndex = Math.floor(moonLongitude / 30) % 12;
     
-    console.log(`Moon longitude: ${moonLongitude}°, Sign index: ${signIndex}`);
+    console.log(`[SWEPH-WASM] Moon longitude: ${moonLongitude}°, Sign index: ${signIndex}, Sign: ${ZODIAC_SIGNS[signIndex]}`);
     
     return ZODIAC_SIGNS[signIndex] || 'Unknown';
   } catch (error) {
@@ -157,32 +162,36 @@ function calculateMoonSign(positions: any): string {
   }
 }
 
-// Calculate rising sign using actual ascendant from house calculation
+// Calculate rising sign using actual ascendant from sweph-wasm house calculation
 function calculateRisingSign(positions: any, lat: number, lon: number): string {
   try {
-    // Find if any planet has house data with actual ascendant
-    // In a full implementation, we'd get the ascendant degree from swe_houses_ex
-    
-    // For now, check if we have house 1 cusp information
-    const anyPlanet = Object.values(positions)[0] as any;
-    if (!anyPlanet || anyPlanet.isMock) {
-      console.warn('Planetary positions not available or using mock data');
-      return 'Unknown';
+    // Check if ASCENDANT was calculated by sweph-wasm house calculation
+    const ascendantPosition = positions.ASCENDANT;
+    if (ascendantPosition && ascendantPosition.longitude) {
+      const ascendantLongitude = ascendantPosition.longitude;
+      const signIndex = Math.floor(ascendantLongitude / 30) % 12;
+      
+      console.log(`[SWEPH-WASM] Ascendant longitude: ${ascendantLongitude}°, Sign index: ${signIndex}, Sign: ${ZODIAC_SIGNS[signIndex]}`);
+      
+      return ZODIAC_SIGNS[signIndex] || 'Unknown';
     }
     
-    // Use a more accurate ascendant calculation
-    // This should ideally come from the house calculation result
-    const date = new Date();
-    const julianDay = date.getTime() / 86400000 + 2440587.5;
+    // Fallback: check if any planet has ascendant reference
+    for (const [planetName, position] of Object.entries(positions)) {
+      const pos = position as any;
+      if (pos.ascendant && typeof pos.ascendant === 'number') {
+        const ascendantLongitude = pos.ascendant;
+        const signIndex = Math.floor(ascendantLongitude / 30) % 12;
+        
+        console.log(`[SWEPH-WASM] Found ascendant reference in ${planetName}: ${ascendantLongitude}°, Sign: ${ZODIAC_SIGNS[signIndex]}`);
+        
+        return ZODIAC_SIGNS[signIndex] || 'Unknown';
+      }
+    }
     
-    // Better approximation for ascendant
-    const siderealTime = (julianDay * 360 + lon) % 360;
-    const ascendantDegrees = (siderealTime + lat * 0.4) % 360;
-    const signIndex = Math.floor(ascendantDegrees / 30) % 12;
+    console.error('No ascendant data found in sweph-wasm calculations');
+    return 'Unknown';
     
-    console.log(`Calculated ascendant: ${ascendantDegrees}°, Sign index: ${signIndex}`);
-    
-    return ZODIAC_SIGNS[signIndex] || 'Unknown';
   } catch (error) {
     console.error('Error in calculateRisingSign:', error);
     return 'Unknown';
@@ -222,7 +231,9 @@ export async function POST(request: Request) {
     const { lat, lon } = await getLocationCoordinates(birthLocation);
     console.log('Location coordinates:', { lat, lon });
     
-    // Get planetary positions using sweph-wasm
+    // Get planetary positions using sweph-wasm only
+    console.log(`[TEST] Calculating positions for: ${birthDateTime.toISOString()}, Location: ${lat}, ${lon}`);
+    
     const ephemerisData = await getPlanetaryPositions({
       date: birthDateTime,
       latitude: lat,
@@ -230,11 +241,24 @@ export async function POST(request: Request) {
       includeHouses: true
     });
     
-    console.log('Got ephemeris data:', {
+    // Verify we're using sweph-wasm, not mock data
+    if (ephemerisData.source !== 'sweph-wasm') {
+      throw new Error(`Expected sweph-wasm data but got: ${ephemerisData.source}`);
+    }
+    
+    console.log('[SWEPH-WASM] Ephemeris data received:', {
       source: ephemerisData.source,
       planetCount: Object.keys(ephemerisData.positions).length,
-      timestamp: ephemerisData.timestamp
+      timestamp: ephemerisData.timestamp,
+      moonPosition: ephemerisData.positions.MOON?.longitude,
+      ascendantPosition: ephemerisData.positions.ASCENDANT?.longitude
     });
+    
+    // Log specific test data for 1983-08-14 16:21 EDT, Norfolk VA
+    if (birthDate === '1983-08-14' && birthLocation.toLowerCase().includes('norfolk')) {
+      console.log('[TEST] Norfolk 1983 test - Moon longitude:', ephemerisData.positions.MOON?.longitude, '°');
+      console.log('[TEST] Expected Moon in Scorpio (~211°)');
+    }
     
     // Calculate Rising Sign (Ascendant)
     const risingSign = calculateRisingSign(ephemerisData.positions, lat, lon);

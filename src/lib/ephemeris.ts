@@ -52,7 +52,6 @@ export interface PlanetPosition {
   degree: number;
   minute: number;
   second: number;
-  isMock: boolean;
   confidence: number;
   orb?: number;
   isAscendant?: boolean;
@@ -64,7 +63,7 @@ export interface EphemerisData {
   positions: Record<string, PlanetPosition>;
   timestamp: Date;
   location: { lat: number; lon: number };
-  source: 'sweph-wasm' | 'mock';
+  source: 'sweph-wasm';
   metadata?: {
     calculationTime: number;
     julianDay: number;
@@ -211,11 +210,9 @@ export function toDegreesMinutesSeconds(decimalDegrees: number): string {
 export class Ephemeris {
   private static instance: Ephemeris;
   private isServer: boolean;
-  private mockMode: boolean = false;
 
   private constructor() {
     this.isServer = typeof window === 'undefined';
-    this.mockMode = process?.env?.NODE_ENV === 'test' || process?.env?.ALLOW_MOCK_MODE === 'true';
   }
 
   static getInstance(): Ephemeris {
@@ -332,19 +329,10 @@ export class Ephemeris {
     const startTime = performance.now();
     
     try {
-      let positions: Record<string, PlanetPosition>;
-      let source: 'sweph-wasm' | 'mock';
-
-      if (this.mockMode) {
-        // Mock mode: Use mock data
-        positions = await this.getMockData(calculationDate, latitude, longitude);
-        source = 'mock';
-      } else {
-        // Use sweph-wasm (works on both server and client)
-        const sweph = await this.initializeSweph();
-        positions = await this.getSwephWasmData(calculationDate, latitude, longitude, sweph);
-        source = 'sweph-wasm';
-      }
+      // Use sweph-wasm directly (no mock fallback)
+      const sweph = await this.initializeSweph();
+      const positions = await this.getSwephWasmData(calculationDate, latitude, longitude, sweph);
+      const source = 'sweph-wasm';
 
       // Calculate houses if requested
       if (includeHouses) {
@@ -360,7 +348,7 @@ export class Ephemeris {
         source,
         metadata: {
           calculationTime,
-          julianDay: this.toJulianDay(calculationDate),
+          julianDay: this.toJulianDay(calculationDate, sweph),
           timezone: timezone || Intl.DateTimeFormat().resolvedOptions().timeZone,
           timezoneInfo
         }
@@ -368,12 +356,12 @@ export class Ephemeris {
 
       // Cache the result
       setCache(cacheKey, result);
-      console.log('[EPHEMERIS] Cache miss for', cacheKey, '- calculation took', calculationTime.toFixed(2), 'ms');
+      console.log('[EPHEMERIS] Calculation complete for', cacheKey, '- took', calculationTime.toFixed(2), 'ms');
 
       return result;
 
     } catch (error) {
-      console.error('Error calculating planetary positions:', error);
+      console.error('[EPHEMERIS] Failed to calculate planetary positions:', error);
       throw new Error(`Failed to calculate planetary positions: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
   }
@@ -430,7 +418,6 @@ export class Ephemeris {
               degree: coords.degree,
               minute: coords.minute,
               second: coords.second,
-              isMock: false,
               confidence: 0.99, // sweph-wasm is highly accurate
               isAscendant: false,
               ascendant: undefined,
@@ -450,45 +437,6 @@ export class Ephemeris {
       console.error('[EPHEMERIS] Failed to calculate positions with sweph-wasm:', error);
       throw new Error(`sweph-wasm calculation failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-  }
-
-  /**
-   * Get mock data (client-side or fallback)
-   */
-  private async getMockData(
-    date: Date,
-    latitude: number,
-    longitude: number
-  ): Promise<Record<string, PlanetPosition>> {
-    // Generate deterministic mock data based on date and location
-    const seed = this.generateSeed(date, latitude, longitude);
-    const positions: Record<string, PlanetPosition> = {};
-
-    for (const planet of PLANETS) {
-      const baseLongitude = this.seededRandom(seed + planet.charCodeAt(0)) * 360;
-      const coords = formatCoordinates(baseLongitude);
-      
-      positions[planet] = {
-        planet,
-        longitude: baseLongitude,
-        latitude: (this.seededRandom(seed + planet.charCodeAt(0) + 1000) - 0.5) * 10,
-        distance: 0.5 + this.seededRandom(seed + planet.charCodeAt(0) + 2000) * 50,
-        speed: (this.seededRandom(seed + planet.charCodeAt(0) + 3000) - 0.5) * 2,
-        house: 0, // Will be calculated separately
-        sign: coords.sign,
-        signName: coords.signName,
-        degree: coords.degree,
-        minute: coords.minute,
-        second: coords.second,
-        isMock: true,
-        confidence: 0.3, // Mock data has low confidence
-        isAscendant: false,
-        ascendant: undefined,
-        mc: undefined
-      };
-    }
-
-    return positions;
   }
 
   /**
@@ -580,7 +528,6 @@ export class Ephemeris {
           degree: ascendantCoords.degree,
           minute: ascendantCoords.minute,
           second: ascendantCoords.second,
-          isMock: false,
           confidence: 0.99,
           isAscendant: true
         };
@@ -622,15 +569,6 @@ export class Ephemeris {
   /**
    * Utility functions
    */
-  private generateSeed(date: Date, latitude: number, longitude: number): number {
-    return date.getTime() + Math.floor(latitude * 1000) + Math.floor(longitude * 1000);
-  }
-
-  private seededRandom(seed: number): number {
-    const x = Math.sin(seed) * 10000;
-    return x - Math.floor(x);
-  }
-
   private toJulianDay(date: Date, sweph: SwissEPH): number {
     const year = date.getFullYear();
     const month = date.getMonth() + 1; // JavaScript months are 0-indexed
@@ -647,7 +585,6 @@ export class Ephemeris {
     status: 'healthy' | 'degraded' | 'unhealthy';
     swissEphemerisAvailable: boolean;
     swephWasmAvailable: boolean;
-    mockMode: boolean;
     environment: 'server' | 'client';
     error?: string;
     cacheMetrics?: {
@@ -669,10 +606,9 @@ export class Ephemeris {
       const swephWasmAvailable = testData.source === 'sweph-wasm';
       
       return {
-        status: swephWasmAvailable ? 'healthy' : 'degraded',
+        status: swephWasmAvailable ? 'healthy' : 'unhealthy',
         swissEphemerisAvailable: false, // Legacy compatibility
         swephWasmAvailable,
-        mockMode: this.mockMode,
         environment: this.isServer ? 'server' : 'client',
         cacheMetrics: getCacheMetrics()
       };
@@ -681,7 +617,6 @@ export class Ephemeris {
         status: 'unhealthy',
         swissEphemerisAvailable: false, // Legacy compatibility
         swephWasmAvailable: false,
-        mockMode: this.mockMode,
         environment: this.isServer ? 'server' : 'client',
         error: error instanceof Error ? error.message : 'Unknown error',
         cacheMetrics: getCacheMetrics()

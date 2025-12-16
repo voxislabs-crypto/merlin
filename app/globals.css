@@ -1,95 +1,91 @@
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;500;600;700;800&family=Open+Sans:wght@300;400;500;600;700&family=Chakra+Petch:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 @import "tw-animate-css";
 
-@custom-variant dark (&:is(.dark *));
 
 :root {
-  /* Updated to cosmic astrology color palette */
-  --background: #0b0c10; /* Midnight Black */
-  --foreground: #eaeaea; /* Starlight Silver */
-  --card: #1f1b3a; /* Cosmic Indigo */
-  --card-foreground: #eaeaea;
-  --popover: #1f1b3a;
-  --popover-foreground: #eaeaea;
-  --primary: #6c4bb2; /* Nebula Purple */
-  --primary-foreground: #eaeaea;
-  --secondary: #f5b82e; /* Solar Gold */
-  --secondary-foreground: #0b0c10;
-  --muted: #1f1b3a;
-  --muted-foreground: #94a3b8;
-  --accent: #00aeef; /* Lunar Blue */
-  --accent-foreground: #0b0c10;
-  --destructive: #e63946; /* Transit Intensity Red */
-  --destructive-foreground: #eaeaea;
-  --border: #6c4bb2;
-  --input: #1f1b3a;
-  --ring: #6c4bb2;
-  --chart-1: #f5b82e;
-  --chart-2: #6c4bb2;
-  --chart-3: #00aeef;
-  --chart-4: #e63946;
-  --chart-5: #06d6a0;
-  --radius: 0.75rem;
-  --sidebar: #1f1b3a;
-  --sidebar-foreground: #eaeaea;
-  --sidebar-primary: #6c4bb2;
-  --sidebar-primary-foreground: #eaeaea;
-  --sidebar-accent: #f5b82e;
-  --sidebar-accent-foreground: #0b0c10;
-  --sidebar-border: #6c4bb2;
-  --sidebar-ring: #6c4bb2;
-
-  /* Added custom astrology colors */
-  --transit-red: #e63946;
-  --transit-yellow: #ffd166;
-  --transit-green: #06d6a0;
-  --solar-gold: #f5b82e;
-  --lunar-blue: #00aeef;
-  --nebula-purple: #6c4bb2;
-  --cosmic-indigo: #1f1b3a;
-  --midnight-black: #0b0c10;
-  --starlight-silver: #eaeaea;
+  /* Cosmic Color Palette - Futuristic Oracle Theme */
+  --cosmic-midnight: #0a0a1a;
+  --electric-indigo: #6F00FF;
+  --deep-purple: #682860;
+  --indigo-bloom: #6F2DA8;
+  --dark-violet: #9400D3;
+  --neon-cyan: #00FFFF;
+  --neon-pink: #FF00FF;
+  --starlight: #E7D4FF;
+  --cosmic-blue: #1a1a3e;
+  
+  /* Updated semantic colors */
+  --background: #0a0a1a;
+  --foreground: #E7D4FF;
+  --card: rgba(31, 27, 58, 0.6);
+  --card-foreground: #E7D4FF;
+  --popover: rgba(31, 27, 58, 0.95);
+  --popover-foreground: #E7D4FF;
+  --primary: #6F00FF;
+  --primary-foreground: #ffffff;
+  --secondary: #9400D3;
+  --secondary-foreground: #ffffff;
+  --muted: rgba(111, 0, 255, 0.1);
+  --muted-foreground: #B88AE0;
+  --accent: #00FFFF;
+  --accent-foreground: #0a0a1a;
+  --destructive: #FF00FF;
+  --destructive-foreground: #ffffff;
+  --border: rgba(111, 0, 255, 0.3);
+  --input: rgba(31, 27, 58, 0.8);
+  --ring: #6F00FF;
+  
+  /* Chart colors */
+  --chart-1: #6F00FF;
+  --chart-2: #9400D3;
+  --chart-3: #00FFFF;
+  --chart-4: #FF00FF;
+  --chart-5: #E7D4FF;
+  
+  /* Glassmorphism variables */
+  --glass-bg: rgba(31, 27, 58, 0.4);
+  --glass-border: rgba(111, 0, 255, 0.2);
+  --glass-blur: 20px;
+  
+  /* Animation variables */
+  --transition-smooth: cubic-bezier(0.4, 0, 0.2, 1);
+  --duration-fast: 200ms;
+  --duration-normal: 300ms;
+  --duration-slow: 500ms;
+  
+  --radius: 1rem;
+  --sidebar: rgba(31, 27, 58, 0.8);
+  --sidebar-foreground: #E7D4FF;
+  --sidebar-primary: #6F00FF;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #00FFFF;
+  --sidebar-accent-foreground: #0a0a1a;
+  --sidebar-border: rgba(111, 0, 255, 0.3);
+  --sidebar-ring: #6F00FF;
 }
 
 .dark {
   /* Dark mode uses same cosmic theme */
-  --background: #0b0c10;
-  --foreground: #eaeaea;
-  --card: #1f1b3a;
-  --card-foreground: #eaeaea;
-  --popover: #0b0c10;
-  --popover-foreground: #eaeaea;
-  --primary: #6c4bb2;
-  --primary-foreground: #eaeaea;
-  --secondary: #f5b82e;
-  --secondary-foreground: #0b0c10;
-  --muted: #1f1b3a;
-  --muted-foreground: #94a3b8;
-  --accent: #00aeef;
-  --accent-foreground: #0b0c10;
-  --destructive: #e63946;
-  --destructive-foreground: #eaeaea;
-  --border: #6c4bb2;
-  --input: #1f1b3a;
-  --ring: #6c4bb2;
-  --chart-1: #f5b82e;
-  --chart-2: #6c4bb2;
-  --chart-3: #00aeef;
-  --chart-4: #e63946;
-  --chart-5: #06d6a0;
-  --sidebar: #1f1b3a;
-  --sidebar-foreground: #eaeaea;
-  --sidebar-primary: #6c4bb2;
-  --sidebar-primary-foreground: #eaeaea;
-  --sidebar-accent: #f5b82e;
-  --sidebar-accent-foreground: #0b0c10;
-  --sidebar-border: #6c4bb2;
-  --sidebar-ring: #6c4bb2;
+  --background: #0a0a1a;
+  --foreground: #E7D4FF;
 }
 
 @theme inline {
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: 'Open Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --font-serif: 'Cinzel', Georgia, serif;
+  --font-tech: 'Chakra Petch', monospace;
+  
+  --color-cosmic-midnight: var(--cosmic-midnight);
+  --color-electric-indigo: var(--electric-indigo);
+  --color-deep-purple: var(--deep-purple);
+  --color-indigo-bloom: var(--indigo-bloom);
+  --color-dark-violet: var(--dark-violet);
+  --color-neon-cyan: var(--neon-cyan);
+  --color-neon-pink: var(--neon-pink);
+  --color-starlight: var(--starlight);
+  --color-cosmic-blue: var(--cosmic-blue);
+  
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -114,6 +110,7 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+  --radius-xs: calc(var(--radius) - 6px);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
@@ -126,41 +123,161 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-
-  /* Added custom astrology color tokens */
-  --color-transit-red: var(--transit-red);
-  --color-transit-yellow: var(--transit-yellow);
-  --color-transit-green: var(--transit-green);
-  --color-solar-gold: var(--solar-gold);
-  --color-lunar-blue: var(--lunar-blue);
-  --color-nebula-purple: var(--nebula-purple);
-  --color-cosmic-indigo: var(--cosmic-indigo);
-  --color-midnight-black: var(--midnight-black);
-  --color-starlight-silver: var(--starlight-silver);
 }
 
 @layer base {
   * {
     @apply border-border outline-ring/50;
   }
+  
   body {
     @apply bg-background text-foreground;
-    /* Added subtle starfield background */
-    background-image: radial-gradient(circle at 25% 25%, rgba(108, 75, 178, 0.1) 0%, transparent 50%),
-      radial-gradient(circle at 75% 75%, rgba(0, 174, 239, 0.05) 0%, transparent 50%),
-      radial-gradient(circle at 50% 50%, rgba(245, 184, 46, 0.03) 0%, transparent 50%);
+    font-family: var(--font-sans);
+    background: radial-gradient(ellipse at top, rgba(111, 0, 255, 0.15) 0%, transparent 50%),
+                radial-gradient(ellipse at bottom, rgba(148, 0, 211, 0.1) 0%, transparent 50%),
+                var(--cosmic-midnight);
+    min-height: 100vh;
   }
+  
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-serif);
+    font-weight: 700;
+  }
+  
+  /* Starfield animation */
+  @keyframes twinkle {
+    0%, 100% { opacity: 0.3; transform: scale(1); }
+    50% { opacity: 1; transform: scale(1.2); }
+  }
+  
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-20px); }
+  }
+  
+  @keyframes pulse-glow {
+    0%, 100% { box-shadow: 0 0 20px rgba(111, 0, 255, 0.3); }
+    50% { box-shadow: 0 0 40px rgba(111, 0, 255, 0.6); }
+  }
+  
+  @keyframes shimmer {
+    0% { background-position: -1000px 0; }
+    100% { background-position: 1000px 0; }
+  }
+}
 
-  /* Added cosmic glow effects */
+@layer components {
+  /* Glassmorphic card utility */
+  .glass-card {
+    background: var(--glass-bg);
+    backdrop-filter: blur(var(--glass-blur));
+    -webkit-backdrop-filter: blur(var(--glass-blur));
+    border: 1px solid var(--glass-border);
+    box-shadow: 0 8px 32px 0 rgba(111, 0, 255, 0.2);
+  }
+  
+  /* Cosmic glow effects */
   .cosmic-glow {
-    box-shadow: 0 0 20px rgba(108, 75, 178, 0.3);
+    box-shadow: 0 0 20px rgba(111, 0, 255, 0.4),
+                0 0 40px rgba(111, 0, 255, 0.2);
+    animation: pulse-glow 3s ease-in-out infinite;
   }
-
-  .solar-glow {
-    box-shadow: 0 0 15px rgba(245, 184, 46, 0.4);
+  
+  .cosmic-glow-static {
+    box-shadow: 0 0 20px rgba(111, 0, 255, 0.4),
+                0 0 40px rgba(111, 0, 255, 0.2);
   }
+  
+  .neon-glow {
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.5),
+                0 0 30px rgba(0, 255, 255, 0.3);
+  }
+  
+  .pink-glow {
+    box-shadow: 0 0 15px rgba(255, 0, 255, 0.5),
+                0 0 30px rgba(255, 0, 255, 0.3);
+  }
+  
+  /* Gradient text */
+  .gradient-text {
+    background: linear-gradient(135deg, var(--electric-indigo), var(--neon-cyan));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+  
+  /* Shimmer effect */
+  .shimmer {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      rgba(111, 0, 255, 0.3) 50%,
+      transparent 100%
+    );
+    background-size: 1000px 100%;
+    animation: shimmer 3s infinite;
+  }
+  
+  /* Cosmic button */
+  .cosmic-button {
+    position: relative;
+    overflow: hidden;
+    transition: all var(--duration-normal) var(--transition-smooth);
+  }
+  
+  .cosmic-button::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.2);
+    transform: translate(-50%, -50%);
+    transition: width 0.6s, height 0.6s;
+  }
+  
+  .cosmic-button:hover::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  /* Starfield container */
+  .starfield {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+  
+  .star {
+    position: absolute;
+    width: 2px;
+    height: 2px;
+    background: white;
+    border-radius: 50%;
+    animation: twinkle 3s ease-in-out infinite;
+  }
+}
 
-  .lunar-glow {
-    box-shadow: 0 0 15px rgba(0, 174, 239, 0.3);
+@layer utilities {
+  /* Custom scrollbar */
+  .cosmic-scrollbar::-webkit-scrollbar {
+    width: 8px;
+  }
+  
+  .cosmic-scrollbar::-webkit-scrollbar-track {
+    background: rgba(111, 0, 255, 0.1);
+    border-radius: 4px;
+  }
+  
+  .cosmic-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(111, 0, 255, 0.5);
+    border-radius: 4px;
+  }
+  
+  .cosmic-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(111, 0, 255, 0.7);
   }
 }
