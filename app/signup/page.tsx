@@ -5,16 +5,12 @@ import { motion } from 'framer-motion'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useClerkAuth } from '@/utils/clerk/client'
-import { SignIn, useUser } from '@clerk/nextjs'
+import { SignUp, useUser } from '@clerk/nextjs'
 import { StarfieldBackground } from '@/components/cosmic/StarfieldBackground'
 import { GlassmorphicCard } from '@/components/cosmic/GlassmorphicCard'
-import { CosmicButton } from '@/components/cosmic/CosmicButton'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
-import { Separator } from '@/components/ui/separator'
-import { Mail, Lock, Eye, EyeOff, Sparkles, ArrowLeft } from 'lucide-react'
+import { Sparkles, ArrowLeft } from 'lucide-react'
 
-export default function LoginPage() {
+export default function SignUpPage() {
   const { isSignedIn, userId } = useClerkAuth()
   const router = useRouter()
 
@@ -56,17 +52,17 @@ export default function LoginPage() {
             </motion.div>
             
             <h1 className="text-3xl font-serif font-bold mb-2 text-foreground">
-              Welcome Back
+              Begin Your Journey
             </h1>
             <p className="text-muted-foreground">
-              Sign in to access your personal oracle
+              Create your account to unlock cosmic insights
             </p>
           </div>
           
-          <SignIn 
-            path="/login"
+          <SignUp 
+            path="/signup"
             routing="path"
-            signUpUrl="/signup"
+            signInUrl="/login"
             redirectUrl="/onboarding"
             appearance={{
               elements: {
@@ -85,9 +81,9 @@ export default function LoginPage() {
           
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
-              Don't have an account?{' '}
-              <Link href="/signup" className="text-primary hover:text-primary/80 font-medium transition-colors">
-                Sign Up
+              Already have an account?{' '}
+              <Link href="/login" className="text-primary hover:text-primary/80 font-medium transition-colors">
+                Sign In
               </Link>
             </p>
           </div>

@@ -80,6 +80,7 @@ export function assignThemes(
       orbBonus: number
       planetBonus: number
       resonanceBonus: number
+      houseBonus: number
     }
   >()
 
@@ -92,6 +93,7 @@ export function assignThemes(
     for (const [theme, triggers] of Object.entries(themeMap)) {
       let matchScore = 0
       let planetBonus = 0
+      let houseBonus = 0
 
       // Check if planets match theme triggers
       for (const planet of asp.planets) {
@@ -102,11 +104,12 @@ export function assignThemes(
         }
       }
 
-      // TODO: Check house positions when houses data is available
+      // Check house positions when houses data is available
       if (houses) {
         for (const [planet, house] of Object.entries(houses)) {
-          if (asp.planets.includes(planet) && triggers.includes(house)) {
+          if (asp.planets.includes(planet) && triggers.includes(house.toString())) {
             matchScore += asp.strength * 0.8
+            houseBonus += 0.3
           }
         }
       }
@@ -114,7 +117,7 @@ export function assignThemes(
       if (matchScore > 0) {
         // Apply resonance boost if available
         const resonanceBonus = resonanceStats?.[theme] ? (resonanceStats[theme] - 0.5) * 0.4 : 0
-        const finalScore = matchScore + orbBonus + planetBonus + resonanceBonus
+        const finalScore = matchScore + orbBonus + planetBonus + houseBonus + resonanceBonus
 
         if (!themeScores.has(theme)) {
           themeScores.set(theme, {
@@ -123,6 +126,7 @@ export function assignThemes(
             orbBonus: 0,
             planetBonus: 0,
             resonanceBonus: 0,
+            houseBonus: 0,
           })
         }
         const current = themeScores.get(theme)!
@@ -131,6 +135,7 @@ export function assignThemes(
         current.orbBonus += orbBonus
         current.planetBonus += planetBonus
         current.resonanceBonus += resonanceBonus
+        current.houseBonus += houseBonus
       }
     }
   }
@@ -180,6 +185,80 @@ export function assignThemes(
   const confidence = Math.min(Math.round((totalScore / aspects.length) * 100), 100)
 
   return { primaryTheme, supportingThemes, confidence }
+}
+
+export function assignThemesFromPlanetaryPositions(
+  positions: Record<string, { longitude: number; house?: number }>,
+  aspects: { planets: [string, string]; aspect: string; strength: number; orb: number }[],
+  resonanceStats?: Record<string, number>
+): ThemeAssignment {
+  const enhancedAspects = aspects.map(asp => ({
+    ...asp,
+    orbTightness: Math.max(0, 1 - (asp.orb / 6)) // Convert orb to tightness score (0-1)
+  }));
+
+  const houses: Record<string, number> = {};
+  for (const [planet, position] of Object.entries(positions)) {
+    if (position.house) {
+      houses[planet] = position.house;
+    }
+  }
+
+  return assignThemes(enhancedAspects, houses, resonanceStats);
+}
+
+export function getThemeAssignmentsForForecast(
+  forecastData: {
+    aspects: { planets: [string, string]; aspect: string; strength: number; orb: number }[];
+    positions: Record<string, { longitude: number; house?: number }>;
+    userId?: string;
+    mbtiType?: string;
+  },
+  userResonance?: Record<string, number>
+): ThemeAssignment {
+  // Get personalized resonance if user data available
+  let resonanceStats = userResonance;
+  
+  if (!resonanceStats && forecastData.userId) {
+    // TODO: Fetch user's historical resonance data
+    // For now, use empty object
+    resonanceStats = {};
+  }
+
+  return assignThemesFromPlanetaryPositions(
+    forecastData.positions,
+    forecastData.aspects,
+    resonanceStats
+  );
+}
+
+export function getThemeWeights(
+  themes: string[],
+  userResonance?: Record<string, number>
+): Record<string, number> {
+  const weights: Record<string, number> = {};
+  
+  for (const theme of themes) {
+    let baseWeight = 1.0;
+    
+    // Apply resonance boost if available
+    if (userResonance && userResonance[theme]) {
+      const resonance = userResonance[theme];
+      baseWeight *= (0.5 + resonance); // Scale from 0.5 to 1.5
+    }
+    
+    weights[theme] = Math.max(0.3, Math.min(2.0, baseWeight));
+  }
+  
+  return weights;
+}
+
+export function updateThemeResonance(
+  userId: string,
+  themeFeedback: { theme: string; score: number }[]
+): void {
+  // TODO: Integrate with resonance database
+  console.log(`[Themes] Updating theme resonance for ${userId}:`, themeFeedback);
 }
 
 // Helper function to get aspect glyphs

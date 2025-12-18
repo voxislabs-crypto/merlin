@@ -390,12 +390,173 @@ export async function getUserFeedbackHistory(userId: string, limit = 10): Promis
   }
 }
 
-export async function persistResonanceData(): Promise<void> {
-  console.log("[Resonance] Data persisted to localStorage database")
+export async function updateResonance(
+  userId: string, 
+  aspect: string, 
+  score: number,
+  mbtiType?: string,
+  theme?: string,
+  notes?: string
+): Promise<void> {
+  try {
+    // Create feedback record
+    const feedback: ResonanceFeedback = {
+      userId,
+      aspect,
+      date: new Date(),
+      score,
+      mbtiType,
+      theme,
+      notes
+    };
+
+    // Save feedback to database
+    await resonanceDB.insertFeedback(feedback);
+
+    // Update in-memory store for compatibility
+    feedbackStore.push(feedback);
+    updateAspectWeighting(feedback);
+
+    console.log(`[Resonance] Updated resonance for ${userId} - ${aspect}: ${score}`);
+  } catch (error) {
+    console.error("[Resonance] Failed to update resonance:", error);
+    throw error;
+  }
 }
 
-export async function loadResonanceData(): Promise<void> {
-  console.log("[Resonance] Data loaded from localStorage database")
+export async function updatePersonalWeights(
+  userId: string,
+  aspectAdjustments: { aspect: string; weight: number }[]
+): Promise<void> {
+  try {
+    for (const { aspect, weight } of aspectAdjustments) {
+      const current = aspectWeightings.get(aspect);
+      if (current) {
+        // Update personal multiplier based on new weight
+        const newPersonalMultiplier = Math.max(0.5, Math.min(1.5, weight));
+        
+        aspectWeightings.set(aspect, {
+          ...current,
+          personalMultiplier: newPersonalMultiplier,
+          confidence: Math.min(0.95, current.confidence + 0.05),
+        });
+      }
+    }
+    
+    console.log(`[Resonance] Updated personal weights for ${userId}`);
+  } catch (error) {
+    console.error("[Resonance] Failed to update personal weights:", error);
+  }
+}
+
+export async function updateGlobalWeights(
+  aspectUpdates: { aspect: string; avgScore: number }[]
+): Promise<void> {
+  try {
+    for (const { aspect, avgScore } of aspectUpdates) {
+      const current = aspectWeightings.get(aspect);
+      if (current) {
+        // Update global multiplier based on average score
+        const globalMultiplier = avgScore > 0.7 ? 1.2 : avgScore < 0.3 ? 0.8 : 1.0;
+        
+        aspectWeightings.set(aspect, {
+          ...current,
+          baseWeight: globalMultiplier,
+          confidence: Math.min(0.95, current.confidence + 0.02),
+        });
+      }
+    }
+    
+    console.log("[Resonance] Updated global weights based on aggregate feedback");
+  } catch (error) {
+    console.error("[Resonance] Failed to update global weights:", error);
+  }
+}
+
+export async function updateClusterWeights(
+  mbtiType: string,
+  aspectUpdates: { aspect: string; avgScore: number }[]
+): Promise<void> {
+  try {
+    for (const { aspect, avgScore } of aspectUpdates) {
+      const current = aspectWeightings.get(aspect);
+      if (current) {
+        // Update cluster multiplier based on MBTI group average
+        const clusterMultiplier = avgScore > 0.7 ? 1.15 : avgScore < 0.3 ? 0.85 : 1.0;
+        
+        aspectWeightings.set(aspect, {
+          ...current,
+          clusterMultiplier,
+          confidence: Math.min(0.95, current.confidence + 0.03),
+        });
+      }
+    }
+    
+    console.log(`[Resonance] Updated cluster weights for MBTI type: ${mbtiType}`);
+  } catch (error) {
+    console.error("[Resonance] Failed to update cluster weights:", error);
+  }
+}
+
+export function getAdaptiveAspectWeight(aspect: string, userId?: string, mbtiType?: string): number {
+  const weighting = aspectWeightings.get(aspect);
+  if (!weighting) return 1.0;
+
+  let finalWeight = weighting.baseWeight;
+
+  // Apply personal multiplier if user data available
+  if (userId && weighting.personalMultiplier !== 1.0) {
+    finalWeight *= weighting.personalMultiplier;
+  }
+
+  // Apply cluster multiplier if MBTI type available
+  if (mbtiType && weighting.clusterMultiplier !== 1.0) {
+    finalWeight *= weighting.clusterMultiplier;
+  }
+
+  // Apply confidence modifier
+  finalWeight *= (0.5 + weighting.confidence); // Scale confidence to 0.5-1.45 range
+
+  return Math.max(0.3, Math.min(2.0, finalWeight));
+}
+
+export async function getPersonalizedForecastWeights(
+  userId: string,
+  aspects: string[],
+  mbtiType?: string
+): Promise<{ aspect: string; weight: number; confidence: number }[]> {
+  const results: { aspect: string; weight: number; confidence: number }[] = [];
+
+  for (const aspect of aspects) {
+    const weighting = aspectWeightings.get(aspect);
+    if (weighting) {
+      const adaptiveWeight = getAdaptiveAspectWeight(aspect, userId, mbtiType);
+      
+      results.push({
+        aspect,
+        weight: adaptiveWeight,
+        confidence: weighting.confidence
+      });
+    } else {
+      // Create new weighting for unknown aspects
+      const newWeighting: AspectWeighting = {
+        aspect,
+        baseWeight: 1.0,
+        personalMultiplier: 1.0,
+        clusterMultiplier: 1.0,
+        confidence: 0.5,
+      };
+      
+      aspectWeightings.set(aspect, newWeighting);
+      results.push({
+        aspect,
+        weight: 1.0,
+        confidence: 0.5
+      });
+    }
+  }
+
+  return results.sort((a, b) => b.weight - a.weight);
 }
 
 export async function getResonanceStats(userId: string, mbtiType?: string): Promise<ResonanceStats> {

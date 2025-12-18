@@ -1,158 +1,187 @@
-"use client"
+"use client";
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { StarfieldBackground } from '@/components/cosmic/StarfieldBackground'
-import { GlassmorphicCard } from '@/components/cosmic/GlassmorphicCard'
-import { CosmicButton } from '@/components/cosmic/CosmicButton'
-import { Sparkles, TrendingUp, Settings, LogOut } from 'lucide-react'
+"use client";
+
+import { useState, useEffect } from 'react';
+import dynamic from 'next/dynamic';
+import { useUser } from '@clerk/nextjs';
+import { Sparkles, X } from 'lucide-react';
+import GlassmorphicCard from '@/components/ui/GlassmorphicCard';
+import type { ResonanceInsightsProps, BirthData } from '@/types/resonance';
+
+export interface UtilityItem {
+  icon: string;
+  title: string;
+  desc: string;
+  gradient: string;
+  borderColor: string;
+}
+
+// Dynamically import components that use browser APIs
+const StarfieldBackground = dynamic(
+  () => import('@/components/cosmic/StarfieldBackground').then(mod => mod.StarfieldBackground),
+  { ssr: false }
+);
+
+const BirthChartDisplay = dynamic(
+  () => import('@/components/astrology/BirthChartDisplay').then(mod => mod.BirthChartDisplay),
+  { ssr: false }
+);
+
+const ResonanceInsights = dynamic(
+  () => import('@/components/dashboard/ResonanceInsights').then(mod => mod.ResonanceInsights),
+  { 
+    ssr: false,
+    loading: () => <div className="p-4 text-center">Loading insights...</div>
+  }
+);
+
+const UserButton = dynamic(
+  () => import('@clerk/nextjs').then((mod) => mod.UserButton),
+  { ssr: false }
+);
 
 export default function DashboardPage() {
-  const router = useRouter()
-  const [userName, setUserName] = useState('')
+  const { isLoaded, user } = useUser();
+  const [mounted, setMounted] = useState(false);
+  const [showBirthChart, setShowBirthChart] = useState(false);
+  const [birthData, setBirthData] = useState<BirthData | null>(null);
 
   useEffect(() => {
-    const hasCompleted = localStorage.getItem('hasCompletedOnboarding')
-    const savedBirthData = localStorage.getItem('birthData')
-    
-    if (hasCompleted !== 'true') {
-      router.push('/login')
-      return
-    }
-    
+    setMounted(true);
+    const savedBirthData = localStorage.getItem('birthData');
     if (savedBirthData) {
       try {
-        const data = JSON.parse(savedBirthData)
-        setUserName(data.fullName || 'Seeker')
-      } catch (error) {
-        console.error('Error parsing birth data:', error)
+        setBirthData(JSON.parse(savedBirthData));
+      } catch (e) {
+        console.error('Failed to parse birth data:', e);
       }
     }
-  }, [router])
+  }, []);
 
-  const handleSignOut = () => {
-    localStorage.removeItem('hasCompletedOnboarding')
-    localStorage.removeItem('birthData')
-    router.push('/')
+  if (!isLoaded || !mounted) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-pulse">Loading...</div>
+      </div>
+    );
+  }
+
+
+  const handleViewChart = () => {
+    if (birthData) {
+      setShowBirthChart(true)
+    }
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden">
-      <StarfieldBackground />
-      
-      <div className="relative z-10 max-w-6xl mx-auto p-4 py-8">
-        {/* Header */}
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-3xl font-serif font-bold text-foreground mb-2">
-              Welcome back, {userName}
-            </h1>
-            <p className="text-muted-foreground">Your cosmic intelligence is ready</p>
-          </div>
-          <div className="flex items-center gap-2">
-            <CosmicButton variant="ghost" size="sm" onClick={() => router.push('/settings')}>
-              <Settings className="w-4 h-4" />
-            </CosmicButton>
-            <CosmicButton variant="ghost" size="sm" onClick={handleSignOut}>
-              <LogOut className="w-4 h-4" />
-            </CosmicButton>
+    <div className="min-h-screen relative">
+      {mounted && <StarfieldBackground />}
+
+      <div className="relative z-10 container mx-auto px-4 py-8">
+        <header className="flex justify-between items-center mb-8">
+          <h1 className="text-3xl font-bold">Dashboard</h1>
+          {mounted && <UserButton afterSignOutUrl="/" />}
+        </header>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {/* Birth Chart Section */}
+          {showBirthChart ? (
+            <div className="md:col-span-2 lg:col-span-3">
+              {birthData && <BirthChartDisplay birthData={birthData} />}
+              <button
+                onClick={() => setShowBirthChart(false)}
+                className="mt-4 text-sm text-muted-foreground hover:text-foreground"
+              >
+                Hide Birth Chart
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setShowBirthChart(true)}
+              className="md:col-span-2 lg:col-span-3 p-8 border-2 border-dashed rounded-lg text-center hover:bg-accent/10 transition-colors"
+            >
+              <h2 className="text-xl font-semibold mb-2">View Birth Chart</h2>
+              <p className="text-muted-foreground">Click to see your astrological chart</p>
+            </button>
+          )}
+
+          {/* Resonance Insights */}
+          <div className="md:col-span-2 lg:col-span-3">
+            <ResonanceInsights
+              userId={user?.id || 'demo-user'}
+              birthData={birthData}
+            />
           </div>
         </div>
 
-        {/* Main Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
-          {/* Primary Theme Card */}
-          <GlassmorphicCard className="lg:col-span-2 p-8" glow="cosmic">
-            <div className="flex items-center gap-3 mb-6">
-              <div className="w-3 h-3 rounded-full bg-primary animate-pulse"></div>
-              <h2 className="text-2xl font-serif font-bold text-foreground">Today's Primary Focus</h2>
-            </div>
-            
-            <div className="text-center mb-6">
-              <div className="text-5xl font-bold text-primary mb-2">☽ □ ♄</div>
-              <p className="text-sm text-muted-foreground">Moon Square Saturn</p>
-            </div>
-
-            <div className="p-6 rounded-lg bg-primary/10 border border-primary/30">
-              <h3 className="text-lg font-semibold text-primary mb-3">Theme: Relationships</h3>
-              <p className="text-foreground mb-4 italic">
-                "Trust your intuition about this relationships focus today."
-              </p>
-              
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold text-accent mb-2">✅ Do</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Trust your instincts</li>
-                    <li>• Communicate clearly</li>
-                    <li>• Set gentle boundaries</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-destructive mb-2">❌ Don't</h4>
-                  <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Overthink decisions</li>
-                    <li>• Ignore your feelings</li>
-                    <li>• Rush important choices</li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-6 text-right">
-              <div className="text-3xl font-bold text-secondary">88%</div>
-              <div className="text-xs text-muted-foreground">Confidence Score</div>
-            </div>
-          </GlassmorphicCard>
-
-          {/* Resonance Intelligence */}
-          <GlassmorphicCard className="p-6" glow="neon">
-            <div className="flex items-center gap-2 mb-4">
-              <TrendingUp className="w-5 h-5 text-accent" />
-              <h3 className="text-lg font-serif font-bold text-foreground">Resonance Intelligence</h3>
-            </div>
-            
-            <div className="space-y-4">
-              <div className="text-center p-4 rounded-lg bg-accent/10">
-                <div className="text-4xl font-bold text-accent mb-1">92%</div>
-                <div className="text-xs text-muted-foreground">Overall Accuracy</div>
-              </div>
-              
-              <div className="text-center p-4 rounded-lg bg-primary/10">
-                <div className="text-2xl font-bold text-primary mb-1">12</div>
-                <div className="text-xs text-muted-foreground">Day Learning Streak</div>
-              </div>
-              
-              <div className="text-center p-4 rounded-lg bg-secondary/10">
-                <div className="text-2xl font-bold text-secondary mb-1">3</div>
-                <div className="text-xs text-muted-foreground">Active Aspects</div>
-              </div>
-            </div>
-          </GlassmorphicCard>
-        </div>
-
-        {/* Cosmic Utilities */}
+        {/* Enhanced Cosmic Utilities */}
         <div>
-          <h3 className="text-xl font-serif font-bold text-foreground mb-4">Cosmic Utilities</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="flex items-center gap-3 mb-6">
+            <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+            <h3 className="text-2xl font-serif font-bold text-foreground">Cosmic Utilities</h3>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
             {[
-              { icon: '🔮', title: 'Ask Merlin', desc: 'Get instant cosmic guidance' },
-              { icon: '📊', title: 'View Chart', desc: 'See your natal chart' },
-              { icon: '📅', title: 'Forecast', desc: 'Weekly predictions' },
-              { icon: '⚙️', title: 'Settings', desc: 'Manage your profile' },
+              {
+                icon: '🔮',
+                title: 'Ask Merlin',
+                desc: 'Get instant cosmic guidance',
+                gradient: 'from-purple-500/10 to-pink-500/10',
+                borderColor: 'border-purple-500/20'
+              },
+              {
+                icon: '📊',
+                title: 'View Chart',
+                desc: 'See your natal chart',
+                gradient: 'from-blue-500/10 to-cyan-500/10',
+                borderColor: 'border-blue-500/20'
+              },
+              {
+                icon: '📅',
+                title: 'Forecast',
+                desc: 'Weekly predictions',
+                gradient: 'from-green-500/10 to-emerald-500/10',
+                borderColor: 'border-green-500/20'
+              },
+              {
+                icon: '⚙️',
+                title: 'Settings',
+                desc: 'Manage your profile',
+                gradient: 'from-orange-500/10 to-red-500/10',
+                borderColor: 'border-orange-500/20'
+              },
             ].map((utility) => (
               <GlassmorphicCard
                 key={utility.title}
-                className="p-6 text-center cursor-pointer"
+                className={`p-6 text-center cursor-pointer bg-linear-to-br ${utility.gradient} border ${utility.borderColor} hover:scale-105 transition-all duration-300 hover:shadow-lg`}
                 hover
+                onClick={utility.title === 'View Chart' ? handleViewChart : undefined}
               >
-                <div className="text-4xl mb-3">{utility.icon}</div>
-                <h4 className="font-semibold text-foreground mb-1">{utility.title}</h4>
-                <p className="text-xs text-muted-foreground">{utility.desc}</p>
+                <div className="text-5xl mb-3 filter drop-shadow-sm">{utility.icon}</div>
+                <h4 className="font-semibold text-foreground mb-2 text-sm">{utility.title}</h4>
+                <p className="text-xs text-muted-foreground leading-relaxed">{utility.desc}</p>
               </GlassmorphicCard>
             ))}
           </div>
         </div>
+
+        {/* Birth Chart Modal */}
+        {showBirthChart && birthData && (
+          <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <div className="bg-background rounded-lg max-w-6xl w-full max-h-[90vh] overflow-y-auto">
+              <div className="p-4 border-b flex items-center justify-between">
+                <h2 className="text-xl font-bold">Your Birth Chart</h2>
+                <button onClick={() => setShowBirthChart(false)}>
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+              <div className="p-4">
+                {birthData && <BirthChartDisplay birthData={birthData} />}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

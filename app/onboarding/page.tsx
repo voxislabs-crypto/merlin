@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
+import { useClerkAuth, useClerkUser } from '@/utils/clerk/client'
+import { useAuth } from '@clerk/nextjs'
 import { StarfieldBackground } from '@/components/cosmic/StarfieldBackground'
 import { GlassmorphicCard } from '@/components/cosmic/GlassmorphicCard'
 import { CosmicButton } from '@/components/cosmic/CosmicButton'
@@ -14,7 +16,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Progress } from "@/components/ui/progress"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ChevronLeft, ChevronRight, User, Calendar, MapPin, Brain, Sparkles, Moon, Star, ArrowLeft, ArrowRight } from "lucide-react"
-import { createClient } from "@/utils/supabase/client"
 
 interface OnboardingData {
   fullName: string
@@ -39,6 +40,8 @@ const MBTI_TYPES = [
 export default function OnboardingPage() {
   const [step, setStep] = useState(1)
   const router = useRouter()
+  const { isSignedIn, userId } = useClerkAuth()
+  const { user } = useClerkUser()
   const [data, setData] = useState<OnboardingData>({
     fullName: "",
     birthDate: "",
@@ -52,37 +55,16 @@ export default function OnboardingPage() {
 
   // Check authentication on mount
   useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const supabase = createClient()
-        const { data: { user }, error } = await supabase.auth.getUser()
-        
-        if (error || !user) {
-          console.log('User not authenticated, redirecting to login')
-          router.push('/login')
-          return
-        }
-        
-        // Check if user already completed onboarding
-        const { data: profile } = await supabase
-          .from('user_profiles')
-          .select('*')
-          .eq('user_id', user.id)
-          .single()
-        
-        // Only redirect if profile exists and we're not in the middle of completing onboarding
-        if (profile && !isLoading) {
-          console.log('User already completed onboarding, redirecting to home')
-          router.push('/')
-        }
-      } catch (error) {
-        console.error('Auth check error:', error)
-        router.push('/login')
-      }
+    if (!isSignedIn) {
+      router.push('/login')
+      return
     }
     
-    checkAuth()
-  }, [router, isLoading])
+    // Pre-fill name from Clerk user data if available
+    if (user?.fullName && !data.fullName) {
+      setData(prev => ({ ...prev, fullName: user.fullName || '' }))
+    }
+  }, [isSignedIn, userId, user, router, data.fullName])
 
   const updateData = (field: keyof OnboardingData, value: string | boolean) => {
     setData(prev => ({ ...prev, [field]: value }))
@@ -152,15 +134,17 @@ export default function OnboardingPage() {
               timeUnknown: data.timeUnknown
             }),
           })
-          
-          if (response.ok) {
-            const result = await response.json()
-            risingSign = result.risingSign
-            moonSign = result.moonSign
-            console.log('Calculated signs:', result)
-          } else {
-            console.error('Failed to calculate signs:', await response.text())
+
+          if (!response.ok) {
+            const errorText = await response.text()
+            console.error('[ONBOARDING] API error:', response.status, errorText)
+            throw new Error(`API error: ${response.status} - ${errorText}`)
           }
+          
+          const result = await response.json()
+          console.log('[ONBOARDING] API result:', result)
+          moonSign = result.moonSign
+          risingSign = result.risingSign
         } catch (error) {
           console.error('Error calculating signs:', error)
         }
@@ -186,52 +170,34 @@ export default function OnboardingPage() {
   const handleSubmit = async () => {
     setIsLoading(true)
     try {
-      // Use Supabase client
-      const supabase = createClient()
-      
-      // Get current user
-      const { data: { user }, error: authError } = await supabase.auth.getUser()
-      
-      if (authError || !user) {
-        throw new Error(authError?.message || 'User not authenticated')
+      if (!userId || !user) {
+        throw new Error('User not authenticated')
       }
       
-      // Save user profile to Supabase
+      // Save user profile using Clerk metadata
       const profileData = {
-        id: crypto.randomUUID(),
-        user_id: user.id,
-        name: data.fullName,
-        birth_date: data.birthDate,
-        birth_time: data.timeUnknown ? null : data.birthTime,
-        birth_location: data.birthLocation,
-        time_unknown: data.timeUnknown,
+        fullName: data.fullName,
+        birthDate: data.birthDate,
+        birthTime: data.timeUnknown ? null : data.birthTime,
+        birthLocation: data.birthLocation,
+        timeUnknown: data.timeUnknown,
         mbti: data.mbti,
-        zodiac_sign: data.zodiacSign || null,
-        rising_sign: data.risingSign || null,
-        moon_sign: data.moonSign || null,
-        life_path_number: data.lifePathNumber || null,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
+        zodiacSign: data.zodiacSign || null,
+        risingSign: data.risingSign || null,
+        moonSign: data.moonSign || null,
+        lifePathNumber: data.lifePathNumber || null,
+        onboardingCompleted: true,
+        onboardingCompletedAt: new Date().toISOString()
       }
       
-      console.log("Attempting to save profile:", profileData)
+      console.log("Attempting to save profile to Clerk metadata:", profileData)
       
-      const { data: supabaseData, error } = await (supabase as any)
-        .from('user_profiles')
-        .upsert(profileData, { onConflict: 'user_id' })
+      // Update user metadata in Clerk
+      await user.update({
+        unsafeMetadata: profileData
+      })
       
-      console.log("Supabase response:", { data: supabaseData, error })
-      
-      if (error) {
-        console.error('Error saving profile:', error)
-        alert(`Database error: ${error.message}`)
-        return
-      }
-      
-      console.log("Profile saved successfully")
-      
-      // Refresh session to ensure middleware recognizes the completed profile
-      await supabase.auth.refreshSession()
+      console.log("Profile saved successfully to Clerk")
       
       // Store completion in localStorage and redirect to main app
       console.log("Saving to localStorage...")

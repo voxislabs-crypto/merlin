@@ -10,6 +10,7 @@ interface GlassmorphicCardProps {
   hover?: boolean
   glow?: 'cosmic' | 'neon' | 'pink' | 'none'
   animate?: boolean
+  onClick?: () => void
 }
 
 export function GlassmorphicCard({
@@ -18,6 +19,7 @@ export function GlassmorphicCard({
   hover = true,
   glow = 'cosmic',
   animate = true,
+  onClick,
 }: GlassmorphicCardProps) {
   const glowClass = {
     cosmic: 'cosmic-glow-static hover:cosmic-glow',
@@ -36,6 +38,7 @@ export function GlassmorphicCard({
         glowClass,
         className
       )}
+      onClick={onClick}
       {...(animate && {
         initial: { opacity: 0, y: 20 },
         animate: { opacity: 1, y: 0 },

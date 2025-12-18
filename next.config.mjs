@@ -1,71 +1,33 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  eslint: {
-    ignoreDuringBuilds: true,
-  },
-  typescript: {
-    ignoreBuildErrors: true,
-  },
-  images: {
-    unoptimized: true,
-  },
-  // Enable React strict mode
-  reactStrictMode: true,
-  
-  // Disable tracing to avoid permission issues
-  logging: {
-    fetches: {
-      fullUrl: false,
-    },
-  },
-  
-  // Configure webpack to handle TypeScript, JSX, and native modules
-  webpack: (config, { isServer }) => {
-    // Add TypeScript and JSX to the list of extensions to resolve
-    config.resolve.extensions = ['.ts', '.tsx', '.js', '.jsx', '.mjs', '.json'];
-    
-    // No need to exclude swisseph anymore - using sweph-wasm
-    
-    // No longer need native node module handling
-    
-    // Handle TypeScript files in the app directory
+  webpack: (config) => {
+    // Enable async WebAssembly
+    config.experiments = {
+      ...config.experiments,
+      asyncWebAssembly: true,
+    };
+
+    // Treat .wasm files as assets
     config.module.rules.push({
-      test: /\.(ts|tsx)$/,
-      use: [
-        {
-          loader: 'ts-loader',
-          options: {
-            transpileOnly: true,
-            compilerOptions: {
-              module: 'esnext',
-              moduleResolution: 'node',
-              esModuleInterop: true,
-              allowSyntheticDefaultImports: true,
-              resolveJsonModule: true,
-              isolatedModules: true,
-              noEmit: false,
-              jsx: 'preserve',
-              target: 'es5',
-            },
-          },
-        },
-      ],
-      exclude: /node_modules/,
+      test: /\.wasm$/,
+      type: 'asset/resource',
     });
-    
-    // Important: Return the modified config
+
     return config;
   },
-  
-  // Support for static exports
-  output: 'standalone',
-  
-  // Enable server components and actions
-  experimental: {
-    serverActions: {
-      bodySizeLimit: '2mb',
-    },
+
+  // Force correct MIME type for WASM files
+  async headers() {
+    return [
+      {
+        source: '/swisseph.wasm',
+        headers: [
+          { key: 'Content-Type', value: 'application/wasm' },
+          { key: 'Cache-Control', value: 'public, max-age=31536000, immutable' },
+        ],
+      },
+    ];
   },
-}
+};
 
 export default nextConfig

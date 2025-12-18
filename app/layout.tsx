@@ -3,6 +3,7 @@ import type { Metadata } from "next"
 import { Suspense } from "react"
 import "./globals.css"
 import { EphemerisStatusBanner } from "../components/EphemerisStatusBanner"
+import { ClerkProvider } from '@clerk/nextjs'
 
 // Cosmic fonts loaded via Google Fonts CDN in globals.css
 const fontVariables = {
@@ -23,19 +24,21 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <html lang="en">
-      <body className={fontVariables.className}>
-        {process.env.NODE_ENV === 'development' && (
-          <div className="fixed top-0 left-0 right-0 z-50">
-            <EphemerisStatusBanner />
-          </div>
-        )}
-        <Suspense fallback={null}>
-          <div className={process.env.NODE_ENV === 'development' ? 'pt-16' : ''}>
-            {children}
-          </div>
-        </Suspense>
-      </body>
-    </html>
+    <ClerkProvider>
+      <html lang="en">
+        <body className={fontVariables.className}>
+          {process.env.NODE_ENV === 'development' && (
+            <div className="fixed top-0 left-0 right-0 z-50">
+              <EphemerisStatusBanner />
+            </div>
+          )}
+          <Suspense fallback={null}>
+            <div className={process.env.NODE_ENV === 'development' ? 'pt-16' : ''}>
+              {children}
+            </div>
+          </Suspense>
+        </body>
+      </html>
+    </ClerkProvider>
   )
 }

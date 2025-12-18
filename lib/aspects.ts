@@ -24,8 +24,23 @@ export interface Aspect {
   interpretation: string // Basic meaning for display
 }
 
-// TODO: Implement planet-specific orb tolerances in production
-// e.g., Sun/Moon get wider orbs, outer planets get tighter orbs
+// Planet-specific orb tolerances
+const PLANET_ORBS: Record<string, number> = {
+  SUN: 8,      // Sun gets wider orbs
+  MOON: 8,     // Moon gets wider orbs
+  MERCURY: 4,  // Inner planets get tighter orbs
+  VENUS: 6,
+  MARS: 5,
+  JUPITER: 6,  // Outer planets get moderate orbs
+  SATURN: 5,
+  URANUS: 3,
+  NEPTUNE: 3,
+  PLUTO: 3,
+  CHIRON: 4,
+  NORTH_NODE: 3,
+  SOUTH_NODE: 3,
+}
+
 const DEFAULT_ORB_TOLERANCE = 6
 
 /**
@@ -78,6 +93,16 @@ function calculateAngularDifference(long1: number, long2: number): number {
 }
 
 /**
+ * Gets the appropriate orb tolerance for a planet pair
+ */
+function getOrbTolerance(planet1: string, planet2: string): number {
+  const orb1 = PLANET_ORBS[planet1] || DEFAULT_ORB_TOLERANCE
+  const orb2 = PLANET_ORBS[planet2] || DEFAULT_ORB_TOLERANCE
+  // Use the average of both planets' orb tolerances
+  return Math.max(orb1, orb2) // Use the wider orb for more inclusive detection
+}
+
+/**
  * Main aspect detection function
  * Analyzes all planetary pairs and identifies significant aspects
  */
@@ -94,13 +119,14 @@ export function detectAspects(positions: Record<string, { longitude: number }>):
       const pos2 = positions[planet2]
 
       const angularDiff = calculateAngularDifference(pos1.longitude, pos2.longitude)
+      const orbTolerance = getOrbTolerance(planet1, planet2)
 
       // Check each aspect type
       for (const [aspectName, exactAngle] of Object.entries(aspects)) {
         const orb = Math.abs(angularDiff - exactAngle)
 
-        // Only include aspects within orb tolerance
-        if (orb <= DEFAULT_ORB_TOLERANCE) {
+        // Only include aspects within planet-specific orb tolerance
+        if (orb <= orbTolerance) {
           const strength = getAspectStrength(orb)
 
           // TODO: Replace with real confidence calculation based on:
@@ -109,7 +135,7 @@ export function detectAspects(positions: Record<string, { longitude: number }>):
           // - Historical accuracy for this aspect type
           // - User feedback patterns
           const baseConfidence = 0.8
-          const orbPenalty = (orb / DEFAULT_ORB_TOLERANCE) * 0.2
+          const orbPenalty = (orb / orbTolerance) * 0.2
           const confidence = Math.max(0.5, baseConfidence - orbPenalty)
 
           results.push({

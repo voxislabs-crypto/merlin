@@ -4,7 +4,7 @@ import { getPlanetaryPositions, EphemerisData } from '../../../src/lib/ephemeris
 interface ForecastResponse {
   data: Record<string, import('../../../src/lib/ephemeris').PlanetPosition>;
   timestamp: string;
-  source: 'swiss-ephemeris' | 'mock';
+  source: 'sweph-native' | 'sweph-wasm' | 'mock';
   warning?: string;
   error?: string;
   details?: string;
@@ -43,15 +43,13 @@ export async function GET(request: Request) {
       date,
       latitude: lat,
       longitude: lon,
-      includeHouses: true,
-      includeAspects: false
+      includeHouses: true
     });
     
     const response: ForecastResponse = {
       data: ephemerisData.positions,
-      timestamp: ephemerisData.timestamp.toISOString(),
-      source: ephemerisData.source,
-      metadata: ephemerisData.metadata
+      timestamp: typeof ephemerisData.timestamp === 'string' ? ephemerisData.timestamp : new Date(ephemerisData.timestamp).toISOString(),
+      source: ephemerisData.source as 'sweph-native' | 'sweph-wasm' | 'mock'
     };
     
     return NextResponse.json(response);

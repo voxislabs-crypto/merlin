@@ -1,6 +1,9 @@
 // Cross-System Validation for Astrology Systems
 // Compares planetary positions across Western, Vedic, and Whole Sign systems
 
+import { EphemerisResponse, PlanetPosition } from '@/types/ephemeris';
+import { getAllPositionsCrossSystem } from './ephemeris';
+
 export interface SystemValidation {
   planet: string
   western: number // longitude in Western
@@ -8,43 +11,227 @@ export interface SystemValidation {
   wholeSign: number // longitude in Whole Sign
   agreement: boolean // true if within tolerance
   tolerance: number // degrees difference allowed
+  maxDifference: number // actual maximum difference found
+  confidence: number // confidence for this specific planet
 }
 
 export interface SystemComparison {
   validations: SystemValidation[]
-  confidence: number
+  overallConfidence: number
   agreementCount: number
   totalCount: number
+  validatedPlanets: string[]
+  disagreedPlanets: string[]
   systemStatus: {
     western: boolean
     vedic: boolean
     wholeSign: boolean
   }
+  systems: {
+    western?: EphemerisResponse
+    vedic?: EphemerisResponse
+    wholeSign?: EphemerisResponse
+  }
 }
 
 /**
- * Validates planetary positions across different astrology systems
- * Currently uses stub calculations - TODO: Replace with real system calculations
+ * Enhanced cross-system validation using real ephemeris calculations
+ */
+export async function validatePositionsCrossSystem(
+  date: Date,
+  lat: number,
+  lon: number,
+  systems: {
+    western?: boolean;
+    vedic?: boolean;
+    wholeSign?: boolean;
+  } = { western: true, vedic: true, wholeSign: true }
+): Promise<SystemComparison> {
+  try {
+    // Get positions from all requested systems
+    const systemResults = await getAllPositionsCrossSystem(date, lat, lon, systems);
+    
+    const validations: SystemValidation[] = [];
+    const planets = new Set<string>();
+    
+    // Collect all planets from all systems
+    Object.values(systemResults).forEach(result => {
+      if (result && 'data' in result && result.data) {
+        Object.keys(result.data).forEach(planet => planets.add(planet));
+      }
+    });
+    
+    // Validate each planet across systems
+    for (const planet of Array.from(planets)) {
+      const validation = validatePlanetAcrossSystems(planet, systemResults);
+      if (validation) {
+        validations.push(validation);
+      }
+    }
+    
+    const overallConfidence = calculateOverallConfidence(validations);
+    const agreementCount = validations.filter(v => v.agreement).length;
+    const validatedPlanets = validations.filter(v => v.agreement).map(v => v.planet);
+    const disagreedPlanets = validations.filter(v => !v.agreement).map(v => v.planet);
+    
+    return {
+      validations,
+      overallConfidence,
+      agreementCount,
+      totalCount: validations.length,
+      validatedPlanets,
+      disagreedPlanets,
+      systemStatus: {
+        western: !!systemResults.western,
+        vedic: !!systemResults.vedic,
+        wholeSign: !!systemResults.wholeSign,
+      },
+      systems: systemResults
+    };
+  } catch (error) {
+    console.error('Error in cross-system validation:', error);
+    // Return fallback comparison
+    return createFallbackComparison(date, lat, lon);
+  }
+}
+
+/**
+ * Validates a single planet across all available systems
+ */
+function validatePlanetAcrossSystems(
+  planet: string,
+  systemResults: any
+): SystemValidation | null {
+  const positions: { system: string; longitude: number }[] = [];
+  
+  // Collect positions from each available system
+  if (systemResults.western && 'data' in systemResults.western && systemResults.western.data?.[planet]) {
+    positions.push({ 
+      system: 'western', 
+      longitude: systemResults.western.data[planet].longitude 
+    });
+  }
+  
+  if (systemResults.vedic && 'data' in systemResults.vedic && systemResults.vedic.data?.[planet]) {
+    positions.push({ 
+      system: 'vedic', 
+      longitude: systemResults.vedic.data[planet].longitude 
+    });
+  }
+  
+  if (systemResults.wholeSign && 'data' in systemResults.wholeSign && systemResults.wholeSign.data?.[planet]) {
+    positions.push({ 
+      system: 'wholeSign', 
+      longitude: systemResults.wholeSign.data[planet].longitude 
+    });
+  }
+  
+  if (positions.length < 2) {
+    return null; // Need at least 2 systems to compare
+  }
+  
+  // Calculate differences and agreement
+  const tolerance = 2; // degrees
+  let maxDifference = 0;
+  
+  for (let i = 0; i < positions.length; i++) {
+    for (let j = i + 1; j < positions.length; j++) {
+      const diff = calculateAngularDifference(positions[i].longitude, positions[j].longitude);
+      maxDifference = Math.max(maxDifference, diff);
+    }
+  }
+  
+  const agreement = maxDifference <= tolerance;
+  const confidence = calculatePlanetConfidence(positions, maxDifference);
+  
+  return {
+    planet,
+    western: systemResults.western?.data?.[planet]?.longitude || 0,
+    vedic: systemResults.vedic?.data?.[planet]?.longitude || 0,
+    wholeSign: systemResults.wholeSign?.data?.[planet]?.longitude || 0,
+    agreement,
+    tolerance,
+    maxDifference: Math.round(maxDifference * 100) / 100,
+    confidence
+  };
+}
+
+/**
+ * Calculates angular difference between two longitudes
+ */
+function calculateAngularDifference(long1: number, long2: number): number {
+  let diff = Math.abs(long1 - long2);
+  if (diff > 180) {
+    diff = 360 - diff;
+  }
+  return diff;
+}
+
+/**
+ * Calculates confidence score for a specific planet based on system agreement
+ */
+function calculatePlanetConfidence(positions: { system: string; longitude: number }[], maxDifference: number): number {
+  const baseConfidence = 0.8;
+  const tolerance = 2;
+  
+  if (maxDifference === 0) {
+    return 0.95; // Perfect agreement
+  }
+  
+  const penalty = (maxDifference / tolerance) * 0.3;
+  return Math.max(0.5, baseConfidence - penalty);
+}
+
+/**
+ * Calculates overall confidence across all planets
+ */
+function calculateOverallConfidence(validations: SystemValidation[]): number {
+  if (validations.length === 0) return 0;
+  
+  const totalConfidence = validations.reduce((sum, v) => sum + v.confidence, 0);
+  return totalConfidence / validations.length;
+}
+
+/**
+ * Creates fallback comparison when real systems fail
+ */
+function createFallbackComparison(date: Date, lat: number, lon: number): SystemComparison {
+  return {
+    validations: [],
+    overallConfidence: 0.1,
+    agreementCount: 0,
+    totalCount: 0,
+    validatedPlanets: [],
+    disagreedPlanets: [],
+    systemStatus: {
+      western: false,
+      vedic: false,
+      wholeSign: false,
+    },
+    systems: {}
+  };
+}
+
+/**
+ * Legacy function for backward compatibility
  */
 export function validatePositions(positions: Record<string, { longitude: number }>): SystemValidation[] {
-  const results: SystemValidation[] = []
+  const results: SystemValidation[] = [];
 
   for (const [planet, data] of Object.entries(positions)) {
-    const western = data.longitude
+    const western = data.longitude;
 
-    // TODO: Replace with real ayanamsa calculation from Swiss Ephemeris
-    // Current stub uses approximate 24° Lahiri ayanamsa
-    const vedic = (western - 24 + 360) % 360
+    // Approximate Vedic (sidereal) with ayanamsa correction
+    const vedic = (western - 24 + 360) % 360;
 
-    // TODO: Replace with proper Whole Sign house calculation
-    // Current stub snaps to nearest 30° sign boundary
-    const wholeSign = Math.floor(western / 30) * 30
+    // Whole Sign approximation
+    const wholeSign = Math.floor(western / 30) * 30;
 
-    const tolerance = 2 // degrees
+    const tolerance = 2; // degrees
 
-    // Check agreement between Western and Vedic (most critical comparison)
-    const westernVedicDiff = Math.min(Math.abs(western - vedic), 360 - Math.abs(western - vedic))
-    const agreement = westernVedicDiff <= tolerance
+    // Check agreement between Western and Vedic
+    const westernVedicDiff = calculateAngularDifference(western, vedic);
+    const agreement = westernVedicDiff <= tolerance;
 
     results.push({
       planet,
@@ -53,47 +240,46 @@ export function validatePositions(positions: Record<string, { longitude: number 
       wholeSign,
       agreement,
       tolerance,
-    })
+      maxDifference: westernVedicDiff,
+      confidence: agreement ? 0.8 : 0.4
+    });
   }
 
-  return results
+  return results;
 }
 
 /**
- * Calculates confidence score based on system agreement
- * Returns value between 0 and 1
+ * Legacy function for backward compatibility
  */
 export function calculateConfidence(validations: SystemValidation[]): number {
-  const total = validations.length
-  if (total === 0) return 0
-
-  const agreed = validations.filter((v) => v.agreement).length
-  return agreed / total
+  return calculateOverallConfidence(validations);
 }
 
 /**
  * Performs comprehensive system comparison with detailed analysis
  */
 export function performSystemComparison(positions: Record<string, { longitude: number }>): SystemComparison {
-  const validations = validatePositions(positions)
-  const confidence = calculateConfidence(validations)
-  const agreementCount = validations.filter((v) => v.agreement).length
-  const totalCount = validations.length
-
-  // TODO: Add real system availability checks
-  const systemStatus = {
-    western: true, // Always available (base system)
-    vedic: true, // TODO: Check if Vedic calculations are available
-    wholeSign: true, // TODO: Check if Whole Sign calculations are available
-  }
+  const validations = validatePositions(positions);
+  const overallConfidence = calculateOverallConfidence(validations);
+  const agreementCount = validations.filter((v) => v.agreement).length;
+  const totalCount = validations.length;
+  const validatedPlanets = validations.filter(v => v.agreement).map(v => v.planet);
+  const disagreedPlanets = validations.filter(v => !v.agreement).map(v => v.planet);
 
   return {
     validations,
-    confidence,
+    overallConfidence,
     agreementCount,
     totalCount,
-    systemStatus,
-  }
+    validatedPlanets,
+    disagreedPlanets,
+    systemStatus: {
+      western: true,
+      vedic: true,
+      wholeSign: true,
+    },
+    systems: {}
+  };
 }
 
 /**
