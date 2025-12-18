@@ -128,35 +128,53 @@ export default function DashboardPage() {
                 title: 'Ask Merlin',
                 desc: 'Get instant cosmic guidance',
                 gradient: 'from-purple-500/10 to-pink-500/10',
-                borderColor: 'border-purple-500/20'
+                borderColor: 'border-purple-500/20',
+                href: '/chat'
               },
               {
                 icon: '📊',
                 title: 'View Chart',
                 desc: 'See your natal chart',
                 gradient: 'from-blue-500/10 to-cyan-500/10',
-                borderColor: 'border-blue-500/20'
+                borderColor: 'border-blue-500/20',
+                onClick: 'viewChart'
+              },
+              {
+                icon: '🌟',
+                title: 'Transits',
+                desc: 'Current cosmic influences',
+                gradient: 'from-indigo-500/10 to-purple-500/10',
+                borderColor: 'border-indigo-500/20',
+                href: '/transits'
               },
               {
                 icon: '📅',
                 title: 'Forecast',
                 desc: 'Weekly predictions',
                 gradient: 'from-green-500/10 to-emerald-500/10',
-                borderColor: 'border-green-500/20'
+                borderColor: 'border-green-500/20',
+                href: '/forecast'
               },
               {
                 icon: '⚙️',
                 title: 'Settings',
                 desc: 'Manage your profile',
                 gradient: 'from-orange-500/10 to-red-500/10',
-                borderColor: 'border-orange-500/20'
+                borderColor: 'border-orange-500/20',
+                href: '/settings'
               },
             ].map((utility) => (
               <GlassmorphicCard
                 key={utility.title}
                 className={`p-6 text-center cursor-pointer bg-linear-to-br ${utility.gradient} border ${utility.borderColor} hover:scale-105 transition-all duration-300 hover:shadow-lg`}
                 hover
-                onClick={utility.title === 'View Chart' ? handleViewChart : undefined}
+                onClick={() => {
+                  if (utility.onClick === 'viewChart') {
+                    handleViewChart()
+                  } else if (utility.href) {
+                    window.location.href = utility.href
+                  }
+                }}
               >
                 <div className="text-5xl mb-3 filter drop-shadow-sm">{utility.icon}</div>
                 <h4 className="font-semibold text-foreground mb-2 text-sm">{utility.title}</h4>
