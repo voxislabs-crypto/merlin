@@ -154,5 +154,5 @@ model BirthChart {
   updatedAt   DateTime @updatedAt @map("updated_at")
   
   @@index([userId])
-  @@map("birth_charts")
+  @@map("birthchart")
 }
