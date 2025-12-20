@@ -1,425 +1,406 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback, FC } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { PLANET_MEANINGS } from '@/lib/astrology/planetaryData';
+import {
+  PlanetPosition,
+  HousePosition,
+  Aspect,
+  BirthChartData,
+  PLANET_GLYPHS,
+  PLANET_COLORS,
+  ZODIAC_SIGNS,
+  ZODIAC_COLORS as ZODIAC_COLORS_IMPORTED,
+  AspectType
+} from '@/lib/astrology/types';
 
-type BirthChartProps = {
-  data: {
-    positions: Array<{
-      planet: string
-      longitude: number
-      latitude: number
-      distance: number
-      speed: number
-      sign: string
-      degree: number
-      minute: number
-      second: number
-      house: number
-      meaning: Record<string, any>
-    }>;
-    houses: Array<{
-      house: number
-      position: number
-      sign: string
-      degree: number
-      minute: number
-      second: number
-    }>;
-    aspects: Array<{
-      planet1: { name: string; longitude: number }
-      planet2: { name: string; longitude: number }
-      type: string
-      orb: number
-      exact: boolean
-      meaning: Record<string, any>
-    }>;
-    birthData: {
-      date: string
-      location: string
-      coordinates: {
-        latitude: number
-        longitude: number
-      }
-    }
-  };
-};
+// Local type for aspect configuration
+interface AspectConfig {
+  degrees: number;
+  orb: number;
+  name: string;
+  color: string;
+}
 
-const ZODIAC_SIGNS = [
-  'Aries', 'Taurus', 'Gemini', 'Cancer', 'Leo', 'Virgo',
-  'Libra', 'Scorpio', 'Sagittarius', 'Capricorn', 'Aquarius', 'Pisces'
+// Aspect configuration
+const ASPECT_CONFIGS: Record<string, AspectConfig> = {
+  CONJUNCTION: { degrees: 0, orb: 10, name: 'Conjunction', color: '#8B5CF6' },
+  OPPOSITION: { degrees: 180, orb: 8, name: 'Opposition', color: '#EF4444' },
+  TRINE: { degrees: 120, orb: 7, name: 'Trine', color: '#10B981' },
+  SQUARE: { degrees: 90, orb: 7, name: 'Square', color: '#F59E0B' },
+  SEXTILE: { degrees: 60, orb: 5, name: 'Sextile', color: '#3B82F6' },
+  QUINTILE: { degrees: 72, orb: 2, name: 'Quintile', color: '#8B5CF6' },
+  BIQUINTILE: { degrees: 144, orb: 2, name: 'Biquintile', color: '#8B5CF6' },
+  SEMISEXTILE: { degrees: 30, orb: 2, name: 'Semisextile', color: '#6B7280' },
+  SEMISQUARE: { degrees: 45, orb: 2, name: 'Semisquare', color: '#F59E0B' },
+  SESQUIQUADRATE: { degrees: 135, orb: 2, name: 'Sesquiquadrate', color: '#F59E0B' },
+  QUINCUNX: { degrees: 150, orb: 2, name: 'Quincunx', color: '#8B5CF6' }
+} as const;
+
+// Use imported ZODIAC_COLORS or fallback to local
+const ZODIAC_COLORS = ZODIAC_COLORS_IMPORTED || [
+  '#FF6B6B', '#4CAF50', '#2196F3', '#9C27B0', '#FFC107', '#8BC34A',
+  '#E91E63', '#673AB7', '#3F51B5', '#009688', '#FF5722', '#795548'
 ];
 
-const PLANET_NAMES: Record<string, string> = {
-  'SUN': 'Sun',
-  'MOON': 'Moon',
-  'MERCURY': 'Mercury',
-  'VENUS': 'Venus',
-  'MARS': 'Mars',
-  'JUPITER': 'Jupiter',
-  'SATURN': 'Saturn',
-  'URANUS': 'Uranus',
-  'NEPTUNE': 'Neptune',
-  'PLUTO': 'Pluto',
-  'CHIRON': 'Chiron',
-  'NORTH_NODE': 'North Node'
-};
-
-const ASPECT_COLORS: Record<string, string> = {
-  'CONJUNCTION': '#FF6B6B',
-  'SEXTILE': '#4ECDC4',
-  'SQUARE': '#FFD166',
-  'TRINE': '#06D6A0',
-  'OPPOSITION': '#EF476F',
-  'QUINTILE': '#A78BFA',
-  'BIQUINTILE': '#C084FC',
-  'SEMISEXTILE': '#7DD3FC',
-  'SEMISQUARE': '#FBBF24',
-  'SESQUIQUADRATE': '#F59E0B',
-  'QUINCUNX': '#F472B6'
-};
-
-export function BirthChartVisualization({ data }: BirthChartProps): JSX.Element {
-  const [hoveredPlanet, setHoveredPlanet] = useState<string | null>(null);
-
-  // Debug: Log the data structure
-  console.log('BirthChartVisualization data:', data);
-  console.log('Positions:', data.positions);
-  console.log('PLANET_MEANINGS:', PLANET_MEANINGS);
-
-  // Custom tooltip component
-  const Tooltip = ({ children, content, visible, planetName }: { children: React.ReactNode; content: any; visible: boolean; planetName: string }) => {
-    const [tooltipPosition, setTooltipPosition] = useState({ x: 0, y: 0 });
-    
-    const handleMouseMove = (e: React.MouseEvent<SVGElement>) => {
-      setTooltipPosition({
-        x: e.clientX,
-        y: e.clientY
-      });
+interface BirthChartProps {
+  data: {
+    planets: PlanetPosition[];
+    houses: HousePosition[];
+    aspects?: Aspect[];
+    birthData?: {
+      date: string;
+      location: string;
+      coordinates: {
+        latitude: number;
+        longitude: number;
+      };
     };
+  };
+  className?: string;
+  showTabs?: boolean;
+  defaultTab?: 'chart' | 'planets' | 'aspects';
+  onPlanetHover?: (planet: PlanetPosition | null) => void;
+  onAspectHover?: (aspect: Aspect | null) => void;
+  children?: React.ReactNode;
+}
 
-    return (
-      <>
-        <g onMouseMove={handleMouseMove}>
-          {children}
-        </g>
-        {visible && content && (
-          <div 
-            className="fixed z-[9999] w-48 p-3 bg-slate-900/95 backdrop-blur-sm border border-purple-400/30 rounded-lg shadow-2xl text-white text-xs pointer-events-none"
-            style={{
-              left: `${tooltipPosition.x + 10}px`,
-              top: `${tooltipPosition.y - 80}px`,
-            }}
-          >
-            <div className="font-bold text-purple-300 mb-1">{content.name || planetName}</div>
-            <div className="space-y-1">
-              {content.keywords && (
-                <div>
-                  <span className="text-purple-400 font-semibold">Keywords:</span> {content.keywords.slice(0, 3).join(', ')}
-                </div>
-              )}
-              {content.description && (
-                <div>
-                  <span className="text-purple-400 font-semibold">Meaning:</span> {content.description.slice(0, 60)}...
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-      </>
+const BirthChartVisualization: FC<BirthChartProps> = ({
+  data,
+  className = '',
+  showTabs = true,
+  defaultTab = 'chart',
+  onPlanetHover,
+  onAspectHover,
+  children,
+}) => {
+  const [activeTab, setActiveTab] = useState<'chart' | 'planets' | 'aspects'>(defaultTab);
+  const [hoveredPlanet, setHoveredPlanet] = useState<PlanetPosition | null>(null);
+  const [hoveredAspect, setHoveredAspect] = useState<Aspect | null>(null);
+
+  // Handle planet hover events
+  const handlePlanetHover = useCallback((planet: PlanetPosition | null) => {
+    setHoveredPlanet(planet);
+    if (onPlanetHover) onPlanetHover(planet);
+  }, [onPlanetHover]);
+
+  // Handle aspect hover events
+  const handleAspectHover = useCallback((aspect: Aspect | null) => {
+    setHoveredAspect(aspect);
+    if (onAspectHover) onAspectHover(aspect);
+  }, [onAspectHover]);
+
+  // Helper function to get aspect type info
+  const getAspectConfig = (type: string): AspectConfig => {
+    if (!type) {
+      return { degrees: 0, orb: 2, name: 'Unknown', color: '#666' };
+    }
+    const config = ASPECT_CONFIGS[type as keyof typeof ASPECT_CONFIGS];
+    return config || {
+      degrees: 0,
+      orb: 2,
+      name: type,
+      color: '#666'
+    };
+  };
+
+  // Get aspect type from aspect object
+  const getAspectType = (aspect: Aspect): AspectType => {
+    if (!aspect || !aspect.type) return 'CONJUNCTION';
+    return typeof aspect.type === 'string' ? aspect.type.toUpperCase() as AspectType : aspect.type;
+  };
+
+  // Helper to get zodiac sign color
+  const getZodiacSignColor = (sign: string): string => {
+    if (!ZODIAC_SIGNS) return '#666';
+    const signIndex = ZODIAC_SIGNS.findIndex(s =>
+      s && sign && s.toLowerCase() === sign.toLowerCase()
     );
-  };
-  // Calculate positions for the circular chart
-  const getPlanetPosition = (longitude: number, radius: number) => {
-    const rad = ((longitude - 90) * Math.PI) / 180;
-    return {
-      x: Math.cos(rad) * radius,
-      y: Math.sin(rad) * radius
-    };
+    return signIndex >= 0 && ZODIAC_COLORS[signIndex]
+      ? ZODIAC_COLORS[signIndex]
+      : '#666';
   };
 
-  // Render zodiac wheel
-  const renderZodiacWheel = () => {
-    const ZODIAC_COLORS = [
-      'from-red-500 to-orange-500', // Aries
-      'from-orange-500 to-yellow-500', // Taurus  
-      'from-yellow-500 to-green-500', // Gemini
-      'from-green-500 to-emerald-500', // Cancer
-      'from-amber-500 to-yellow-600', // Leo
-      'from-green-600 to-teal-500', // Virgo
-      'from-pink-500 to-rose-500', // Libra
-      'from-red-600 to-red-800', // Scorpio
-      'from-purple-500 to-indigo-500', // Sagittarius
-      'from-gray-600 to-slate-700', // Capricorn
-      'from-blue-500 to-cyan-500', // Aquarius
-      'from-indigo-500 to-purple-600', // Pisces
-    ];
+  // Render the zodiac wheel with planets and aspects
+  const renderZodiacWheel = useCallback(() => {
+    const { planets = [], aspects = [] } = data;
 
     return (
-      <div className="relative w-full max-w-md mx-auto aspect-square">
-        {/* Outer decorative ring */}
-        <div className="absolute inset-0 rounded-full bg-linear-to-r from-purple-900/20 via-blue-900/20 to-indigo-900/20 border-2 border-purple-500/30 shadow-2xl">
-          {/* Inner decorative ring */}
-          <div className="absolute inset-2 rounded-full bg-linear-to-br from-slate-900/50 to-slate-800/30 border border-purple-400/20">
-            {/* Center circle */}
-            <div className="absolute inset-4 rounded-full bg-linear-to-br from-slate-900 to-black border border-purple-300/10">
-              {/* Everything in SVG for precise positioning */}
-              <svg className="absolute inset-0 w-full h-full" viewBox="0 0 100 100">
-                {ZODIAC_SIGNS.map((sign, i) => {
-                  const startAngle = i * 30;
-                  const endAngle = (i + 1) * 30;
-                  const startRad = (startAngle - 90) * Math.PI / 180;
-                  const endRad = (endAngle - 90) * Math.PI / 180;
-                  const x1 = 50 + Math.cos(startRad) * 40;
-                  const y1 = 50 + Math.sin(startRad) * 40;
-                  const x2 = 50 + Math.cos(endRad) * 40;
-                  const y2 = 50 + Math.sin(endRad) * 40;
-                  const largeArcFlag = endAngle - startAngle > 180 ? 1 : 0;
-                  
-                  return (
-                    <g key={sign}>
-                      {/* Zodiac segment */}
-                      <path
-                        d={`M 50 50 L ${x1} ${y1} A 40 40 0 ${largeArcFlag} 1 ${x2} ${y2} Z`}
-                        className={`fill-gradient-to-br ${ZODIAC_COLORS[i]} opacity-30 stroke-purple-400/20`}
-                        strokeWidth="0.5"
-                      />
-                      {/* Segment border */}
-                      <line
-                        x1="50"
-                        y1="50"
-                        x2={x2}
-                        y2={y2}
-                        className="stroke-purple-400/30"
-                        strokeWidth="0.5"
-                      />
-                    </g>
-                  );
-                })}
-                
-                {/* House lines */}
-                {Array.from({ length: 12 }).map((_, i) => {
-                  const angle = (i * 30) - 90;
-                  const rad = angle * Math.PI / 180;
-                  const x = 50 + Math.cos(rad) * 38;
-                  const y = 50 + Math.sin(rad) * 38;
-                  
-                  return (
-                    <line
-                      key={`house-${i}`}
-                      x1="50"
-                      y1="50"
-                      x2={x}
-                      y2={y}
-                      className="stroke-cyan-400/40"
-                      strokeWidth="1"
-                      strokeDasharray={i === 0 ? "0" : "2,2"}
-                    />
-                  );
-                })}
-                
-                {/* Aspect lines */}
-                {data.aspects.slice(0, 8).map((aspect, i) => {
-                  const planet1Pos = data.positions.find(p => p.planet === aspect.planet1.name);
-                  const planet2Pos = data.positions.find(p => p.planet === aspect.planet2.name);
-                  
-                  if (!planet1Pos || !planet2Pos) return null;
-                  
-                  const angle1 = planet1Pos.longitude - 90;
-                  const angle2 = planet2Pos.longitude - 90;
-                  const rad1 = angle1 * Math.PI / 180;
-                  const rad2 = angle2 * Math.PI / 180;
-                  
-                  const x1 = Math.cos(rad1) * 32 + 50;
-                  const y1 = Math.sin(rad1) * 32 + 50;
-                  const x2 = Math.cos(rad2) * 32 + 50;
-                  const y2 = Math.sin(rad2) * 32 + 50;
-                  
-                  return (
-                    <line
-                      key={i}
-                      x1={x1}
-                      y1={y1}
-                      x2={x2}
-                      y2={y2}
-                      stroke={ASPECT_COLORS[aspect.type] || '#666'}
-                      strokeWidth="1"
-                      strokeDasharray={aspect.type === 'TRINE' || aspect.type === 'SEXTILE' ? '3,3' : '2,2'}
-                      opacity="0.3"
-                      className="animate-pulse"
-                      style={{ animationDuration: '3s', animationDelay: `${i * 0.2}s` }}
-                    />
-                  );
-                })}
-                
-                {/* Planets as SVG circles with text */}
-                {data.positions.map((planetData, index) => {
-                  const angle = planetData.longitude - 90;
-                  const rad = angle * Math.PI / 180;
-                  
-                  // Add slight staggering to prevent overlapping
-                  const radiusOffset = index % 2 === 0 ? 32 : 28; // Alternate between 32 and 28
-                  const x = Math.cos(rad) * radiusOffset + 50;
-                  const y = Math.sin(rad) * radiusOffset + 50;
-                  
-                  const planetMeaning = PLANET_MEANINGS[planetData.planet as keyof typeof PLANET_MEANINGS] || {};
-                  
-                  return (
-                    <g key={planetData.planet}>
-                      {/* Planet circle - smaller size */}
-                      <circle
-                        cx={x}
-                        cy={y}
-                        r="2.5"
-                        fill="url(#planetGradient)"
-                        className="hover:r-3 transition-all cursor-pointer"
-                        onMouseEnter={() => {
-                          console.log('Hovering over:', planetData.planet, 'at SVG position:', x, y);
-                          setHoveredPlanet(planetData.planet);
-                        }}
-                        onMouseLeave={() => {
-                          console.log('Left hover:', planetData.planet);
-                          setHoveredPlanet(null);
-                        }}
-                      />
-                      {/* Planet symbol - smaller text */}
-                      <text
-                        x={x}
-                        y={y}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className="fill-white text-xs font-bold pointer-events-none select-none"
-                        style={{ fontSize: '6px' }}
-                      >
-                        {planetData.planet === 'SUN' ? '☉' : 
-                         planetData.planet === 'MOON' ? '☽' :
-                         planetData.planet === 'MERCURY' ? '☿' :
-                         planetData.planet === 'VENUS' ? '♀' :
-                         planetData.planet === 'MARS' ? '♂' :
-                         planetData.planet === 'JUPITER' ? '♃' :
-                         planetData.planet === 'SATURN' ? '♄' :
-                         planetData.planet === 'URANUS' ? '♅' :
-                         planetData.planet === 'NEPTUNE' ? '♆' :
-                         planetData.planet === 'PLUTO' ? '♇' :
-                         planetData.planet === 'NORTH_NODE' ? '☊' :
-                         planetData.planet === 'SOUTH_NODE' ? '☋' :
-                         planetData.planet[0]}
-                      </text>
-                    </g>
-                  );
-                })}
-                
-                {/* Center decorative circle */}
-                <circle
-                  cx="50"
-                  cy="50"
-                  r="3"
-                  className="fill-purple-400"
-                />
-                
-                {/* Define gradient for planets */}
-                <defs>
-                  <linearGradient id="planetGradient" x1="0%" y1="0%" x2="100%" y2="100%">
-                    <stop offset="0%" className="stop-color-yellow-400" />
-                    <stop offset="100%" className="stop-color-orange-500" />
-                  </linearGradient>
-                </defs>
-              </svg>
-              
-              {/* Zodiac sign labels */}
-              {ZODIAC_SIGNS.map((sign, i) => {
-                const angle = (i * 30) + 15; // Center of each sign
-                const rad = (angle - 90) * Math.PI / 180;
-                const x = Math.cos(rad) * 46 + 50;
-                const y = Math.sin(rad) * 46 + 50;
-                
-                return (
-                  <div 
-                    key={sign}
-                    className="absolute text-xs font-bold text-center transform -translate-x-1/2 -translate-y-1/2"
-                    style={{
-                      left: `${x}%`,
-                      top: `${y}%`,
-                      color: ZODIAC_COLORS[i].includes('red') ? '#fca5a5' :
-                             ZODIAC_COLORS[i].includes('orange') ? '#fb923c' :
-                             ZODIAC_COLORS[i].includes('yellow') ? '#fbbf24' :
-                             ZODIAC_COLORS[i].includes('green') ? '#4ade80' :
-                             ZODIAC_COLORS[i].includes('blue') ? '#60a5fa' :
-                             ZODIAC_COLORS[i].includes('purple') ? '#c084fc' :
-                             ZODIAC_COLORS[i].includes('pink') ? '#f472b6' :
-                             ZODIAC_COLORS[i].includes('gray') ? '#9ca3af' : '#e5e7eb'
-                    }}
-                  >
-                    {sign}
+      <div className="relative w-full max-w-2xl mx-auto aspect-square">
+        {/* Wheel base */}
+        <div className="absolute inset-0 rounded-full border-2 border-slate-700">
+          {/* Wheel segments */}
+          {Array.from({ length: 12 }).map((_, i) => {
+            const angle = (i * 30) - 15; // Offset by 15 degrees to center the signs
+            const sign = ZODIAC_SIGNS[i];
+            const color = getZodiacSignColor(sign);
+
+            return (
+              <div
+                key={sign}
+                className="absolute inset-0 flex items-center justify-center"
+                style={{
+                  transform: `rotate(${angle}deg)`,
+                  transformOrigin: 'center',
+                }}
+              >
+                <div
+                  className="w-1/2 h-1/2 flex items-end justify-center pb-2 text-xs font-medium"
+                  style={{ color }}
+                >
+                  {sign[0]}
+                </div>
+              </div>
+            );
+          })}
+
+          {/* Planets */}
+          {planets.map((planet) => {
+            const angle = planet.longitude - 90; // 0° at the top
+            const radius = 45; // percentage of container
+            const x = 50 + Math.cos(angle * Math.PI / 180) * radius;
+            const y = 50 + Math.sin(angle * Math.PI / 180) * radius;
+            const isHovered = hoveredPlanet?.name === planet.name;
+
+            return (
+              <div
+                key={planet.name}
+                className="absolute flex items-center justify-center cursor-pointer transition-transform duration-200 hover:scale-125"
+                style={{
+                  left: `${x}%`,
+                  top: `${y}%`,
+                  transform: 'translate(-50%, -50%)',
+                  zIndex: isHovered ? 10 : 5,
+                }}
+                onMouseEnter={() => handlePlanetHover(planet)}
+                onMouseLeave={() => handlePlanetHover(null)}
+                title={`${planet.name} in ${planet.sign} (${Math.floor(planet.longitude % 30)}°)`}
+              >
+                <span
+                  className={`text-2xl ${isHovered ? 'text-yellow-400' : ''}`}
+                  style={{ color: PLANET_COLORS[planet.name] || '#9CA3AF' }}
+                >
+                  {PLANET_GLYPHS[planet.name] || planet.name[0]}
+                </span>
+                {isHovered && (
+                  <div className="absolute -bottom-8 bg-slate-800 text-white text-xs px-2 py-1 rounded whitespace-nowrap">
+                    {planet.name} in {planet.sign}
                   </div>
-                );
-              })}
-            </div>
-          </div>
+                )}
+              </div>
+            );
+          })}
+
+          {/* Aspect lines */}
+          <svg className="absolute inset-0 w-full h-full pointer-events-none">
+            {aspects.map((aspect, i) => {
+              const planet1 = planets.find(p => p.name === aspect.planet1.name);
+              const planet2 = planets.find(p => p.name === aspect.planet2.name);
+
+              if (!planet1 || !planet2) return null;
+
+              const angle1 = planet1.longitude - 90;
+              const angle2 = planet2.longitude - 90;
+              const radius = 50;
+
+              const x1 = 50 + Math.cos(angle1 * Math.PI / 180) * radius;
+              const y1 = 50 + Math.sin(angle1 * Math.PI / 180) * radius;
+              const x2 = 50 + Math.cos(angle2 * Math.PI / 180) * radius;
+              const y2 = 50 + Math.sin(angle2 * Math.PI / 180) * radius;
+
+              const aspectType = getAspectConfig(aspect.type);
+              const isHovered = hoveredAspect?.type === aspect.type &&
+                              hoveredAspect.planet1 === aspect.planet1 &&
+                              hoveredAspect.planet2 === aspect.planet2;
+
+              return (
+                <line
+                  key={i}
+                  x1={`${x1}%`}
+                  y1={`${y1}%`}
+                  x2={`${x2}%`}
+                  y2={`${y2}%`}
+                  stroke={isHovered ? '#F59E0B' : (aspectType?.color || '#6B7280')}
+                  strokeWidth={isHovered ? 2.5 : 1.5}
+                  strokeDasharray={aspect.type === 'conjunction' ? '0' : '4,4'}
+                  className="transition-all duration-200"
+                  onMouseEnter={() => handleAspectHover(aspect)}
+                  onMouseLeave={() => handleAspectHover(null)}
+                />
+              );
+            })}
+          </svg>
         </div>
       </div>
     );
-  };
+  }, [hoveredPlanet, hoveredAspect, handlePlanetHover, handleAspectHover]);
 
-  // Render planet positions in a table
-  const renderPlanetTable = () => (
+  // Render planet information table
+  const renderPlanetTable = useCallback(() => (
     <div className="mt-8">
       <h3 className="text-lg font-semibold mb-4">Planetary Positions</h3>
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {data.positions.map((planetData) => (
-          <div key={planetData.planet} className="flex items-center p-2 bg-slate-800 rounded-lg">
-            <div className="w-8 h-8 rounded-full bg-blue-500 flex items-center justify-center text-white mr-3">
-              {PLANET_NAMES[planetData.planet]?.[0] || planetData.planet[0]}
-            </div>
-            <div>
-              <div className="font-medium">{PLANET_NAMES[planetData.planet] || planetData.planet}</div>
-              <div className="text-sm text-slate-300">
-                {planetData.sign} {planetData.degree}°{planetData.minute}'
-                {` (House ${planetData.house})`}
+        {data.planets?.map((planet) => {
+          const planetInfo = PLANET_MEANINGS[planet.name as keyof typeof PLANET_MEANINGS];
+          const sign = ZODIAC_SIGNS[Math.floor(planet.longitude / 30)];
+          const degree = Math.floor(planet.longitude % 30);
+          const minutes = Math.floor((planet.longitude % 1) * 60);
+
+          return (
+            <div
+              key={planet.name}
+              className={`p-4 rounded-lg border ${
+                hoveredPlanet?.name === planet.name ? 'border-purple-500 bg-purple-900/20' : 'border-slate-700 bg-slate-800/50'
+              } transition-colors`}
+              onMouseEnter={() => handlePlanetHover(planet)}
+              onMouseLeave={() => handlePlanetHover(null)}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-3">
+                  <span className="text-2xl" style={{ color: PLANET_COLORS[planet.name] }}>
+                    {PLANET_GLYPHS[planet.name] || planet.name[0]}
+                  </span>
+                  <div>
+                    <h4 className="font-medium text-white">{planetInfo?.name || planet.name}</h4>
+                    <p className="text-sm text-gray-300">
+                      {sign} {degree}°{minutes < 10 ? '0' : ''}{minutes}'
+                      <span className="ml-2 text-xs text-gray-400">House {planet.house}</span>
+                    </p>
+                  </div>
+                </div>
+                <span className="text-sm text-gray-400">
+                  {planet.speed && Math.abs(planet.speed) > 0.1 ? (
+                    planet.speed > 0 ? 'Direct' : 'Retrograde'
+                  ) : 'Stationary'}
+                </span>
               </div>
+              {planetInfo?.description && (
+                <p className="mt-2 text-sm text-gray-300">
+                  {planetInfo.description}
+                </p>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
-  );
+  ), [data.planets, hoveredPlanet, handlePlanetHover]);
 
   // Render aspect grid
-  const renderAspectGrid = () => (
+  const renderAspectGrid = useCallback(() => (
     <div className="mt-8">
       <h3 className="text-lg font-semibold mb-4">Aspects</h3>
       <div className="overflow-x-auto">
-        <table className="min-w-full divide-y divide-slate-700">
-          <thead>
-            <tr>
-              <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Planets</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Aspect</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Orb</th>
-              <th className="px-4 py-2 text-left text-sm font-medium text-slate-300">Exact</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-700">
-            {data.aspects.map((aspect, i) => (
-              <tr key={i}>
-                <td className="px-4 py-2 text-sm">
-                  {PLANET_NAMES[aspect.planet1.name] || aspect.planet1.name} 
-                  {PLANET_NAMES[aspect.planet2.name] || aspect.planet2.name}
-                </td>
-                <td className="px-4 py-2 text-sm">{aspect.type}</td>
-                <td className="px-4 py-2 text-sm">{aspect.orb}°</td>
-                <td className="px-4 py-2 text-sm">{aspect.exact ? 'Yes' : 'No'}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div className="grid grid-cols-1 gap-4">
+          {data.aspects?.map((aspect, i) => {
+            const planet1 = data.planets?.find(p => p.name === aspect.planet1.name);
+            const planet2 = data.planets?.find(p => p.name === aspect.planet2.name);
+
+            if (!planet1 || !planet2) return null;
+
+            const aspectType = getAspectConfig(aspect.type);
+            const isHovered = hoveredAspect?.type === aspect.type &&
+                            hoveredAspect.planet1.name === aspect.planet1.name &&
+                            hoveredAspect.planet2.name === aspect.planet2.name;
+
+            return (
+              <div
+                key={i}
+                className={`p-4 rounded-lg border ${
+                  isHovered ? 'border-purple-500 bg-purple-900/20' : 'border-slate-700 bg-slate-800/50'
+                } transition-colors`}
+                onMouseEnter={() => handleAspectHover(aspect)}
+                onMouseLeave={() => handleAspectHover(null)}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center space-x-2">
+                    <span className="text-lg" style={{ color: PLANET_COLORS[planet1.name] }}>
+                      {PLANET_GLYPHS[planet1.name] || planet1.name[0]}
+                    </span>
+                    <span className="font-medium text-white">{planet1.name}</span>
+                    <span className="text-gray-400">{getAspectConfig(aspect.type).name}</span>
+                    <span className="text-lg" style={{ color: PLANET_COLORS[planet2.name] }}>
+                      {PLANET_GLYPHS[planet2.name] || planet2.name[0]}
+                    </span>
+                    <span className="font-medium text-white">{planet2.name}</span>
+                  </div>
+                  <span
+                    className="text-xs px-2 py-1 rounded-full"
+                    style={{
+                      backgroundColor: isHovered ? '#8B5CF6' : '#374151',
+                      color: 'white'
+                    }}
+                  >
+                    {Math.round(aspect.orb * 10) / 10}° orb
+                  </span>
+                </div>
+                {aspect.meaning?.description && (
+                  <p className="mt-2 text-sm text-gray-300">
+                    {aspect.meaning.description}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       </div>
     </div>
-  );
+  ), [data.aspects, hoveredAspect, handleAspectHover]);
 
   return (
-    <div className="space-y-8">
-      {renderZodiacWheel()}
-      {renderPlanetTable()}
-      {renderAspectGrid()}
+    <div className={`space-y-8 ${className}`}>
+      {showTabs && (
+        <div className="flex border-b border-slate-700">
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'chart'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            onClick={() => setActiveTab('chart')}
+          >
+            Chart
+          </button>
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'planets'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            onClick={() => setActiveTab('planets')}
+          >
+            Planets
+          </button>
+          <button
+            className={`px-4 py-2 font-medium ${
+              activeTab === 'aspects'
+                ? 'text-blue-400 border-b-2 border-blue-400'
+                : 'text-slate-400 hover:text-white'
+            }`}
+            onClick={() => setActiveTab('aspects')}
+          >
+            Aspects
+          </button>
+        </div>
+      )}
+
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={activeTab}
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -10 }}
+          transition={{ duration: 0.2 }}
+        >
+          {activeTab === 'chart' && renderZodiacWheel()}
+          {activeTab === 'planets' && renderPlanetTable()}
+          {activeTab === 'aspects' && renderAspectGrid()}
+        </motion.div>
+      </AnimatePresence>
+
+      {children}
     </div>
   );
-}; 
+};
+
+export default BirthChartVisualization;

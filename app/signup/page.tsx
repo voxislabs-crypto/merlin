@@ -28,7 +28,7 @@ export default function SignUpPage() {
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
       <StarfieldBackground />
-      
+
       <div className="relative z-10 w-full max-w-md">
         <Link href="/">
           <motion.button
@@ -39,18 +39,18 @@ export default function SignUpPage() {
             <span>Back to Home</span>
           </motion.button>
         </Link>
-        
+
         <GlassmorphicCard className="p-8" glow="cosmic">
           <div className="text-center mb-8">
             <motion.div
               initial={{ scale: 0 }}
               animate={{ scale: 1 }}
               transition={{ type: "spring", duration: 0.6 }}
-              className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-primary to-secondary cosmic-glow-static mb-4"
+              className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-linear-to-br from-primary to-secondary cosmic-glow-static mb-4"
             >
               <Sparkles className="w-8 h-8 text-white" />
             </motion.div>
-            
+
             <h1 className="text-3xl font-serif font-bold mb-2 text-foreground">
               Begin Your Journey
             </h1>
@@ -58,8 +58,8 @@ export default function SignUpPage() {
               Create your account to unlock cosmic insights
             </p>
           </div>
-          
-          <SignUp 
+
+          <SignUp
             path="/signup"
             routing="path"
             signInUrl="/login"
@@ -78,7 +78,7 @@ export default function SignUpPage() {
               }
             }}
           />
-          
+
           <div className="mt-6 text-center">
             <p className="text-sm text-muted-foreground">
               Already have an account?{' '}
@@ -88,7 +88,7 @@ export default function SignUpPage() {
             </p>
           </div>
         </GlassmorphicCard>
-        
+
         <p className="text-center text-xs text-muted-foreground mt-6">
           By continuing, you agree to Merlin's Terms of Service and Privacy Policy
         </p>

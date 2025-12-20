@@ -1,5 +1,20 @@
 import { NextResponse } from 'next/server';
 import { utc_to_jd, calc, houses_ex2, constants, set_ephe_path } from 'sweph';
+import { auth, currentUser } from '@clerk/nextjs/server';
+import { PrismaClient, Prisma } from '@prisma/client';
+import type { User } from '@prisma/client';
+
+// Helper function to safely serialize data for Prisma
+const prepareForPrisma = (data: any): Prisma.InputJsonValue => {
+  return JSON.parse(JSON.stringify(data));
+};
+
+// Ensure this route is always dynamically evaluated
+export const dynamic = 'force-dynamic';
+
+export const runtime = 'nodejs';
+
+const prisma = new PrismaClient();
 
 interface BirthChartRequest {
   birthDate: string;
@@ -230,8 +245,86 @@ function calculatePlanetPosition(planetName: string, julianDay: number): { longi
   }
 }
 
+export async function GET(req: Request) {
+  try {
+    const session = await auth();
+    const userId = session?.userId;
+    
+    if (!userId) {
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+
+    // Find existing birth chart
+    const existingChart = await prisma.birthChart.findFirst({
+      where: { 
+        userId: userId
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+
+    if (!existingChart) {
+      return NextResponse.json(
+        { error: 'Birth chart not found' },
+        { status: 404 }
+      );
+    }
+    
+    // Safely parse the stored data
+    const planets = Array.isArray(existingChart.planets) ? existingChart.planets : [];
+    const houses = Array.isArray(existingChart.houses) ? existingChart.houses : [];
+    const aspects = Array.isArray(existingChart.aspects) ? existingChart.aspects : [];
+    
+    // Transform database data to match expected format
+    const response = {
+      success: true,
+      data: {
+        planets: planets,
+        houses: houses,
+        ascendant: planets.find((p: any) => p?.name === 'Ascendant'),
+        midheaven: planets.find((p: any) => p?.name === 'Midheaven'),
+        aspects: aspects,
+        metadata: {
+          julianDay: existingChart.julianDay,
+          location: { 
+            lat: existingChart.latitude, 
+            lon: existingChart.longitude 
+          },
+          timezone: 'UTC'
+        }
+      },
+      birthDate: existingChart.birthDate.toISOString(),
+      latitude: existingChart.latitude,
+      longitude: existingChart.longitude
+    };
+
+    return NextResponse.json(response);
+    
+  } catch (error) {
+    console.error('Error retrieving birth chart:', error);
+    return NextResponse.json(
+      { error: 'Failed to retrieve birth chart' },
+      { status: 500 }
+    );
+  }
+}
+
 export async function POST(req: Request) {
   try {
+    // Check for authentication using currentUser
+    const user = await currentUser();
+    if (!user) {
+      console.log('Unauthorized access attempt to birth-chart API');
+      return NextResponse.json(
+        { success: false, error: 'Authentication required' },
+        { status: 401 }
+      );
+    }
+    
+    const userId = user.id;
+    
     console.log('Initializing real Swiss Ephemeris...');
     set_ephe_path('./ephe'); // Use ephe directory for ephemeris files
     console.log('Real Swiss Ephemeris loaded successfully');
@@ -361,6 +454,47 @@ export async function POST(req: Request) {
     
     // Calculate aspects
     const aspects = findAspects(planets);
+    
+    // Create new chart with JSON data
+    const chartData = {
+      userId: user.id,
+      birthDate: date,
+      latitude: location.lat,
+      longitude: location.lon,
+      planets: prepareForPrisma(planets),
+      houses: prepareForPrisma(houses),
+      aspects: prepareForPrisma(aspects),
+      julianDay: jd_et,
+    };
+    
+    // Update existing chart with JSON data
+    const existingChart = await prisma.birthChart.findFirst({
+      where: { 
+        userId: userId
+      },
+      orderBy: { createdAt: 'desc' }
+    });
+    
+    if (existingChart) {
+      const updatedChart = await prisma.birthChart.update({
+        where: { 
+          id: existingChart.id 
+        },
+        data: {
+          planets: prepareForPrisma(planets),
+          houses: prepareForPrisma(houses),
+          aspects: prepareForPrisma(aspects),
+          julianDay: jd_et,
+          updatedAt: new Date()
+        }
+      });
+      console.log('Birth chart saved to database for user:', userId);
+    } else {
+      const newChart = await prisma.birthChart.create({
+        data: chartData,
+      });
+      console.log('New birth chart created for user:', userId);
+    }
     
     // Log real positions for verification
     console.log('Real Swiss Ephemeris Birth Chart Results:');

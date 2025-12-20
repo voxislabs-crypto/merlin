@@ -1,13 +1,14 @@
 import { useState, useEffect } from 'react';
 import type {
   PlanetPosition,
-  EphemerisData,
-  EphemerisOptions
+  EphemerisData
 } from '../../src/lib/ephemeris';
 
-export interface UseEphemerisProps extends Omit<EphemerisOptions, 'date'> {
+export interface UseEphemerisProps {
   date?: Date | null;
   autoFetch?: boolean;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface UseEphemerisReturn {
@@ -15,7 +16,6 @@ export interface UseEphemerisReturn {
   loading: boolean;
   error: string | null;
   source: 'swiss-ephemeris' | 'mock';
-  metadata?: EphemerisData['metadata'];
   refetch: () => Promise<void>;
   initializing?: boolean; // WASM initialization state
 }
@@ -26,17 +26,13 @@ export function useEphemeris({
   date = new Date(),
   latitude = 0,
   longitude = 0,
-  autoFetch = true,
-  includeHouses = true,
-  includeAspects = false,
-  zodiacType = 'tropical',
-  houseSystem = 'placidus'
+  autoFetch = true
 }: UseEphemerisProps = {}): UseEphemerisReturn {
   const [data, setData] = useState<Record<string, PlanetPosition> | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [source, setSource] = useState<'swiss-ephemeris' | 'mock'>('mock');
-  const [metadata, setMetadata] = useState<EphemerisData['metadata']>();
+  const [metadata, setMetadata] = useState<any>();
   const [initializing, setInitializing] = useState<boolean>(false);
 
   const fetchEphemeris = async (): Promise<void> => {
@@ -54,10 +50,10 @@ export function useEphemeris({
         date: date.toISOString(),
         lat: latitude.toString(),
         lon: longitude.toString(),
-        includeHouses: includeHouses.toString(),
-        includeAspects: includeAspects.toString(),
-        zodiacType,
-        houseSystem
+        includeHouses: 'true',
+        includeAspects: 'false',
+        zodiacType: 'tropical',
+        houseSystem: 'placidus'
       });
 
       const response = await fetch(`/api/forecast?${params}`);
@@ -97,7 +93,6 @@ export function useEphemeris({
     loading,
     error,
     source,
-    metadata,
     initializing,
     refetch: fetchEphemeris,
   };

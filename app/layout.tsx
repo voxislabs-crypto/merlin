@@ -4,6 +4,7 @@ import { Suspense } from "react"
 import "./globals.css"
 import { EphemerisStatusBanner } from "../components/EphemerisStatusBanner"
 import { ClerkProvider } from '@clerk/nextjs'
+import { Toaster } from 'sonner'
 
 // Cosmic fonts loaded via Google Fonts CDN in globals.css
 const fontVariables = {
@@ -24,9 +25,25 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   return (
-    <ClerkProvider>
+    <ClerkProvider
+      appearance={{
+        elements: {
+          formButtonPrimary: 'bg-primary hover:bg-primary/90',
+          footerActionLink: 'text-primary hover:text-primary/80',
+          formFieldInput: 'focus:ring-2 focus:ring-primary focus:ring-offset-2',
+          formFieldInputShowPasswordButton: 'text-muted-foreground hover:text-foreground',
+          formFieldInputPassword: 'pr-10',
+          formFieldInputShowPasswordIcon: 'h-5 w-5',
+        },
+      }}
+      signInUrl="/sign-in"
+      signUpUrl="/sign-up"
+      afterSignInUrl="/dashboard"
+      afterSignUpUrl="/onboarding"
+    >
       <html lang="en">
         <body className={fontVariables.className}>
+          <Toaster position="top-center" />
           {process.env.NODE_ENV === 'development' && (
             <div className="fixed top-0 left-0 right-0 z-50">
               <EphemerisStatusBanner />
@@ -42,3 +59,4 @@ export default function RootLayout({
     </ClerkProvider>
   )
 }
+

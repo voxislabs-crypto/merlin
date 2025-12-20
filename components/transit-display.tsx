@@ -41,7 +41,7 @@ export function TransitDisplay({ forecast }: TransitDisplayProps) {
       <Card className="border-2 border-primary/20">
         <CardHeader>
           <div className="flex items-center justify-between">
-            <CardTitle className="text-xl font-[family-name:var(--font-montserrat)] font-bold">
+            <CardTitle className="text-xl font-(family-name:--font-montserrat) font-bold">
               {new Date(forecast.date).toLocaleDateString("en-US", {
                 weekday: "long",
                 year: "numeric",

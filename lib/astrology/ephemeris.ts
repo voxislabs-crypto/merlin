@@ -2,7 +2,7 @@ import { utc_to_jd, calc, constants, set_ephe_path } from 'sweph';
 import { PLANET_MEANINGS } from './planetaryData';
 
 // Set the path to the ephemeris files
-set_ephe_path('./node_modules/ephemeris/ephe');
+set_ephe_path('./ephe');
 
 // Map planet names to Swiss Ephemeris planet constants
 const PLANET_IDS: Record<string, number> = {

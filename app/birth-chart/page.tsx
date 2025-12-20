@@ -7,7 +7,7 @@ import { StarfieldBackground } from '@/components/cosmic/StarfieldBackground'
 import { GlassmorphicCard } from '@/components/cosmic/GlassmorphicCard'
 import { CosmicButton } from '@/components/cosmic/CosmicButton'
 import { LoadingOracle } from '@/components/cosmic/LoadingOracle'
-import { BirthChartVisualization } from '@/components/astrology/BirthChartVisualization'
+import BirthChartVisualization from '@/components/astrology/BirthChartVisualization'
 import { motion } from 'framer-motion'
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -46,6 +46,7 @@ interface BirthChartData {
   }>
   birthData: {
     date: string
+    time?: string
     location: string
     coordinates: {
       latitude: number
@@ -115,9 +116,70 @@ export default function BirthChartPage() {
     router.push('/dashboard')
   }
   
-  const handleSaveChart = () => {
-    // TODO: Implement save to profile
-    toast.success('Birth chart saved to your profile')
+  // Define the birth chart data type
+  const [birthChart, setBirthChart] = useState<{
+    birthData: {
+      date: string;
+      location: string;
+      coordinates: {
+        latitude: number;
+        longitude: number;
+      };
+    };
+    positions: Array<{
+      planet: string;
+      longitude: number;
+      latitude: number;
+      distance: number;
+      speed: number;
+      sign: string;
+      degree: number;
+      minute: number;
+      second: number;
+      house: number;
+    }>;
+    houses: Array<{
+      house: number;
+      position: number;
+      sign: string;
+      degree: number;
+      minute: number;
+      second: number;
+    }>;
+    aspects?: Array<{
+      planet1: { name: string; longitude: number };
+      planet2: { name: string; longitude: number };
+      type: string;
+      orb: number;
+      exact: boolean;
+    }>;
+  } | null>(null);
+
+  const handleSaveChart = async () => {
+    try {
+      if (!birthChart) {
+        toast.error('No birth chart data to save');
+        return;
+      }
+
+      const response = await fetch('/api/user/save-birth-chart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(birthChart),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to save birth chart');
+      }
+
+      toast.success('Birth chart saved to your profile');
+    } catch (error) {
+      console.error('Error saving birth chart:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to save birth chart');
+    }
   }
   
   const handleShare = () => {
@@ -141,8 +203,9 @@ export default function BirthChartPage() {
   
   if (error) {
     return (
-      <StarfieldBackground>
-        <div className="container mx-auto px-4 py-16 min-h-screen flex items-center justify-center">
+      <>
+        <StarfieldBackground />
+        <div className="container mx-auto px-4 py-16 min-h-screen flex items-center justify-center relative z-10">
           <GlassmorphicCard className="max-w-2xl w-full">
             <CardHeader>
               <CardTitle className="text-2xl font-bold text-center mb-2">
@@ -164,13 +227,14 @@ export default function BirthChartPage() {
             </CardContent>
           </GlassmorphicCard>
         </div>
-      </StarfieldBackground>
+      </>
     )
   }
 
   return (
-    <StarfieldBackground>
-      <div className="container mx-auto px-4 py-8">
+    <>
+      <StarfieldBackground />
+      <div className="container mx-auto px-4 py-8 relative z-10">
         <div className="flex justify-between items-center mb-8">
           <Button 
             onClick={handleBack}
@@ -218,7 +282,9 @@ export default function BirthChartPage() {
             Your Birth Chart
           </h1>
           <p className="text-center text-gray-400 mb-8">
-            {chartData?.birthData.date.toLocaleDateString()} • {chartData?.birthData.time} • {chartData?.birthData.location}
+            {chartData?.birthData?.date ? new Date(chartData.birthData.date).toLocaleDateString() : 'Date not available'} • 
+            {chartData?.birthData?.time || 'Time not specified'} • 
+            {chartData?.birthData?.location || 'Location not specified'}
           </p>
         </motion.div>
         
@@ -243,6 +309,6 @@ export default function BirthChartPage() {
           </div>
         </div>
       </div>
-    </StarfieldBackground>
+    </>
   )
 }

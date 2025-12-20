@@ -7,10 +7,10 @@ import { Badge } from '@/components/ui/badge'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { toast } from 'sonner'
-import { 
-  Moon, 
-  Sun, 
-  TrendingUp, 
+import {
+  Moon,
+  Sun,
+  TrendingUp,
   Calendar,
   Heart,
   ThumbsUp,
@@ -19,6 +19,7 @@ import {
   ArrowRight,
   Clock
 } from 'lucide-react'
+import { ResonanceFeedback } from '@/components/ui/ResonanceFeedback'
 
 interface PlanetPosition {
   name: string
@@ -60,7 +61,7 @@ export default function TransitsPage() {
     try {
       setLoading(true)
       const response = await fetch('/api/transits')
-      
+
       if (!response.ok) {
         throw new Error('Failed to fetch transits')
       }
@@ -130,17 +131,17 @@ export default function TransitsPage() {
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString)
-    return date.toLocaleDateString('en-US', { 
-      weekday: 'long', 
-      year: 'numeric', 
-      month: 'long', 
-      day: 'numeric' 
+    return date.toLocaleDateString('en-US', {
+      weekday: 'long',
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric'
     })
   }
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-indigo-950 via-purple-900 to-pink-900 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-16 w-16 border-b-4 border-white mx-auto mb-4"></div>
           <p className="text-white text-lg">Loading cosmic transits...</p>
@@ -151,7 +152,7 @@ export default function TransitsPage() {
 
   if (!transitData) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 flex items-center justify-center">
+      <div className="min-h-screen bg-linear-to-br from-indigo-950 via-purple-900 to-pink-900 flex items-center justify-center">
         <Card className="max-w-md">
           <CardContent className="p-8 text-center">
             <p className="text-red-600 mb-4">Failed to load transit data</p>
@@ -163,7 +164,7 @@ export default function TransitsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-900 p-6">
+    <div className="min-h-screen bg-linear-to-br from-indigo-950 via-purple-900 to-pink-900 p-6">
       <div className="max-w-7xl mx-auto space-y-6">
         {/* Hero Section */}
         <div className="text-center space-y-4 py-8">
@@ -190,10 +191,10 @@ export default function TransitsPage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-6 rounded-lg">
+            <div className="bg-linear-to-r from-purple-500/20 to-pink-500/20 p-6 rounded-lg">
               <p className="text-white text-lg leading-relaxed">{transitData.summary}</p>
             </div>
-            <div className="bg-gradient-to-r from-blue-500/20 to-green-500/20 p-6 rounded-lg">
+            <div className="bg-linear-to-r from-blue-500/20 to-green-500/20 p-6 rounded-lg">
               <div className="flex items-start space-x-3">
                 <TrendingUp className="h-6 w-6 text-green-400 mt-1" />
                 <div>
@@ -224,9 +225,9 @@ export default function TransitsPage() {
                   </div>
                 ) : (
                   transitData.activeTransits.map((transit, index) => (
-                    <Card 
+                    <Card
                       key={index}
-                      className="bg-gradient-to-br from-purple-900/40 to-pink-900/40 border-purple-500/30 hover:border-purple-400/50 transition-all cursor-pointer"
+                      className="bg-linear-to-br from-purple-900/40 to-pink-900/40 border-purple-500/30 hover:border-purple-400/50 transition-all cursor-pointer"
                       onClick={() => setSelectedTransit(transit)}
                     >
                       <CardContent className="p-6">
@@ -243,7 +244,7 @@ export default function TransitsPage() {
                                 <Badge variant="secondary" className="text-xs">
                                   Orb: {transit.orb.toFixed(2)}°
                                 </Badge>
-                                <Badge 
+                                <Badge
                                   variant={transit.applying ? 'default' : 'outline'}
                                   className="text-xs"
                                 >
@@ -254,7 +255,7 @@ export default function TransitsPage() {
                           </div>
                           <div className="flex items-center space-x-2">
                             <div className="w-24 h-2 bg-gray-700 rounded-full overflow-hidden">
-                              <div 
+                              <div
                                 className={`h-full ${getStrengthColor(transit.strength)} transition-all`}
                                 style={{ width: `${transit.strength * 100}%` }}
                               />
@@ -298,6 +299,11 @@ export default function TransitsPage() {
                             >
                               <ThumbsDown className="h-4 w-4 text-red-400" />
                             </Button>
+                            <ResonanceFeedback
+                              itemId={`${transit.transitingPlanet}-${transit.aspect}-${transit.natalPlanet}`}
+                              itemType="aspect"
+                              className="justify-end mt-2"
+                            />
                           </div>
                         </div>
                       </CardContent>
@@ -325,11 +331,11 @@ export default function TransitsPage() {
               {[...Array(7)].map((_, index) => {
                 const date = new Date()
                 date.setDate(date.getDate() + index)
-                
+
                 return (
-                  <Card 
+                  <Card
                     key={index}
-                    className="bg-gradient-to-br from-purple-800/30 to-pink-800/30 border-purple-500/30"
+                    className="bg-linear-to-br from-purple-800/30 to-pink-800/30 border-purple-500/30"
                   >
                     <CardContent className="p-4 text-center">
                       <div className="text-white font-semibold mb-2">
@@ -361,7 +367,7 @@ export default function TransitsPage() {
         <div className="flex justify-center">
           <Button
             onClick={fetchTransits}
-            className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg"
+            className="bg-linear-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white px-8 py-6 text-lg"
           >
             <Clock className="h-5 w-5 mr-2" />
             Refresh Transits

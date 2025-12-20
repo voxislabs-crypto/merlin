@@ -59,7 +59,7 @@ export default function OnboardingPage() {
       router.push('/login')
       return
     }
-    
+
     // Pre-fill name from Clerk user data if available
     if (user?.fullName && !data.fullName) {
       setData(prev => ({ ...prev, fullName: user.fullName || '' }))
@@ -82,7 +82,7 @@ export default function OnboardingPage() {
     const birthDate = new Date(date)
     const month = birthDate.getMonth() + 1
     const day = birthDate.getDate()
-    
+
     if ((month === 3 && day >= 21) || (month === 4 && day <= 19)) return "Aries"
     if ((month === 4 && day >= 20) || (month === 5 && day <= 20)) return "Taurus"
     if ((month === 5 && day >= 21) || (month === 6 && day <= 20)) return "Gemini"
@@ -102,12 +102,12 @@ export default function OnboardingPage() {
     const day = birthDate.getDate()
     const month = birthDate.getMonth() + 1
     const year = birthDate.getFullYear()
-    
+
     let sum = day + month + year
     while (sum > 9 && sum !== 11 && sum !== 22 && sum !== 33) {
       sum = sum.toString().split('').reduce((acc, digit) => acc + parseInt(digit), 0)
     }
-    
+
     return sum.toString()
   }
 
@@ -115,11 +115,11 @@ export default function OnboardingPage() {
     if (data.birthDate) {
       const sunSign = calculateZodiacSign(data.birthDate)
       const lifePath = calculateLifePathNumber(data.birthDate)
-      
+
       // Calculate rising and moon signs if birth time and location are available
       let risingSign = "Unknown"
       let moonSign = "Unknown"
-      
+
       if (!data.timeUnknown && data.birthTime && data.birthLocation) {
         try {
           const response = await fetch('/api/calculate-signs', {
@@ -140,7 +140,7 @@ export default function OnboardingPage() {
             console.error('[ONBOARDING] API error:', response.status, errorText)
             throw new Error(`API error: ${response.status} - ${errorText}`)
           }
-          
+
           const result = await response.json()
           console.log('[ONBOARDING] API result:', result)
           moonSign = result.moonSign
@@ -149,13 +149,13 @@ export default function OnboardingPage() {
           console.error('Error calculating signs:', error)
         }
       }
-      
+
       setCalculatedSigns({
         sun: sunSign,
         rising: risingSign,
         moon: moonSign
       })
-      
+
       setData(prev => ({
         ...prev,
         zodiacSign: sunSign,
@@ -173,7 +173,7 @@ export default function OnboardingPage() {
       if (!userId || !user) {
         throw new Error('User not authenticated')
       }
-      
+
       // Save user profile using Clerk metadata
       const profileData = {
         fullName: data.fullName,
@@ -189,16 +189,16 @@ export default function OnboardingPage() {
         onboardingCompleted: true,
         onboardingCompletedAt: new Date().toISOString()
       }
-      
+
       console.log("Attempting to save profile to Clerk metadata:", profileData)
-      
+
       // Update user metadata in Clerk
       await user.update({
         unsafeMetadata: profileData
       })
-      
+
       console.log("Profile saved successfully to Clerk")
-      
+
       // Store completion in localStorage and redirect to main app
       console.log("Saving to localStorage...")
       localStorage.setItem('hasCompletedOnboarding', 'true')
@@ -258,7 +258,7 @@ export default function OnboardingPage() {
   return (
     <div className="min-h-screen relative overflow-hidden flex items-center justify-center p-4">
       <StarfieldBackground />
-      
+
       <div className="relative z-10 w-full max-w-2xl">
         <div className="mb-8">
           <div className="flex items-center justify-between mb-4">
@@ -319,7 +319,7 @@ export default function OnboardingPage() {
                   <p className="text-muted-foreground">When and where did you enter this world?</p>
                 </div>
               </div>
-              
+
               <div className="space-y-2">
                 <Label htmlFor="birthDate" className="text-foreground">Birth Date</Label>
                 <Input
@@ -375,7 +375,7 @@ export default function OnboardingPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-green-200">Personality Matrix</h3>
               </div>
-              
+
               <div className="space-y-4">
                 <Label htmlFor="mbti" className="text-green-200 text-sm font-medium">MBTI Type</Label>
                 <Select value={data.mbti} onValueChange={(value) => updateData("mbti", value)}>
@@ -392,7 +392,7 @@ export default function OnboardingPage() {
                 </Select>
               </div>
 
-              <div className="bg-gradient-to-r from-green-500/20 to-blue-500/20 p-4 rounded-lg border border-white/10">
+              <div className="bg-linear-to-r from-green-500/20 to-blue-500/20 p-4 rounded-lg border border-white/10">
                 <p className="text-sm text-green-200">
                   <Star className="inline h-4 w-4 mr-2" />
                   Your MBTI type helps us understand how you process cosmic energy
@@ -409,9 +409,9 @@ export default function OnboardingPage() {
                 </div>
                 <h3 className="text-xl font-semibold text-yellow-200">Your Cosmic Blueprint</h3>
               </div>
-              
+
               <div className="space-y-4">
-                <div className="bg-gradient-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-lg border border-white/10">
+                <div className="bg-linear-to-r from-purple-500/20 to-pink-500/20 p-4 rounded-lg border border-white/10">
                   <h4 className="text-lg font-semibold text-purple-200 mb-3">Calculated Signs</h4>
                   {calculatedSigns && (
                     <div className="space-y-2">
@@ -434,8 +434,8 @@ export default function OnboardingPage() {
                     </div>
                   )}
                 </div>
-                
-                <div className="bg-gradient-to-r from-blue-500/20 to-green-500/20 p-4 rounded-lg border border-white/10">
+
+                <div className="bg-linear-to-r from-blue-500/20 to-green-500/20 p-4 rounded-lg border border-white/10">
                   <p className="text-sm text-blue-200">
                     <Sparkles className="inline h-4 w-4 mr-2" />
                     Your cosmic profile is ready! Merlin will use this data to provide personalized transit predictions and astrological guidance.

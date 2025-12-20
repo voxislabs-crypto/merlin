@@ -7,6 +7,8 @@ import { Sparkles, X, Sun, Moon, Star } from 'lucide-react';
 import GlassmorphicCard from '@/components/ui/GlassmorphicCard';
 import type { ResonanceInsightsProps, BirthData } from '@/types/resonance';
 import { useDailyGuidance } from '@/hooks/useDailyGuidance';
+import { ResonanceFeedback } from '@/components/ui/ResonanceFeedback';
+import { DashboardNav } from '@/components/dashboard/DashboardNav';
 
 export interface UtilityItem {
   icon: string;
@@ -29,7 +31,7 @@ const BirthChartDisplay = dynamic(
 
 const ResonanceInsights = dynamic(
   () => import('@/components/dashboard/ResonanceInsights').then(mod => mod.ResonanceInsights),
-  { 
+  {
     ssr: false,
     loading: () => <div className="p-4 text-center">Loading insights...</div>
   }
@@ -46,6 +48,13 @@ export default function DashboardPage() {
   const [showBirthChart, setShowBirthChart] = useState(false);
   const [birthData, setBirthData] = useState<BirthData | null>(null);
   const { guidance, loading: guidanceLoading, error: guidanceError } = useDailyGuidance();
+
+  // Debug: Log guidance object to inspect for special characters
+  useEffect(() => {
+    if (guidance) {
+      console.log('Guidance object:', JSON.stringify(guidance, null, 2));
+    }
+  }, [guidance]);
 
   useEffect(() => {
     setMounted(true);
@@ -83,6 +92,8 @@ export default function DashboardPage() {
           <h1 className="text-3xl font-bold">Dashboard</h1>
           {mounted && <UserButton afterSignOutUrl="/" />}
         </header>
+        
+        <DashboardNav />
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {/* Birth Chart Section */}
@@ -121,7 +132,7 @@ export default function DashboardPage() {
             <Sun className="w-5 h-5 text-primary animate-pulse" />
             <h3 className="text-2xl font-serif font-bold text-foreground">Daily Oracle</h3>
           </div>
-          
+
           {guidanceLoading ? (
             <GlassmorphicCard className="p-6">
               <div className="flex items-center justify-center py-8">
@@ -149,10 +160,10 @@ export default function DashboardPage() {
                   <span className="text-sm text-muted-foreground">{Math.round(guidance.confidence * 100)}% resonance</span>
                 </div>
               </div>
-              
+
               <div className="space-y-4">
                 <p className="text-foreground leading-relaxed">{guidance.message}</p>
-                
+
                 <div className="bg-background/50 rounded-lg p-4 border border-border">
                   <div className="flex items-center gap-2 mb-2">
                     <Star className="w-4 h-4 text-primary" />
@@ -163,7 +174,10 @@ export default function DashboardPage() {
 
                 {guidance.resonanceNote && (
                   <div className="bg-primary/10 rounded-lg p-4 border border-primary/20">
-                    <p className="text-sm text-primary">{guidance.resonanceNote}</p>
+                    <p className="text-purple-100 text-lg leading-relaxed">
+                      {guidance.message}
+                    </p>
+                    {/* Temporarily removed ResonanceFeedback for debugging */}
                   </div>
                 )}
 
@@ -181,75 +195,6 @@ export default function DashboardPage() {
               </div>
             </GlassmorphicCard>
           ) : null}
-        </div>
-
-        {/* Enhanced Cosmic Utilities */}
-        <div>
-          <div className="flex items-center gap-3 mb-6">
-            <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-            <h3 className="text-2xl font-serif font-bold text-foreground">Cosmic Utilities</h3>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {[
-              {
-                icon: '🔮',
-                title: 'Ask Merlin',
-                desc: 'Get instant cosmic guidance',
-                gradient: 'from-purple-500/10 to-pink-500/10',
-                borderColor: 'border-purple-500/20',
-                href: '/chat'
-              },
-              {
-                icon: '📊',
-                title: 'View Chart',
-                desc: 'See your natal chart',
-                gradient: 'from-blue-500/10 to-cyan-500/10',
-                borderColor: 'border-blue-500/20',
-                onClick: 'viewChart'
-              },
-              {
-                icon: '🌟',
-                title: 'Transits',
-                desc: 'Current cosmic influences',
-                gradient: 'from-indigo-500/10 to-purple-500/10',
-                borderColor: 'border-indigo-500/20',
-                href: '/transits'
-              },
-              {
-                icon: '📅',
-                title: 'Forecast',
-                desc: 'Weekly predictions',
-                gradient: 'from-green-500/10 to-emerald-500/10',
-                borderColor: 'border-green-500/20',
-                href: '/forecast'
-              },
-              {
-                icon: '⚙️',
-                title: 'Settings',
-                desc: 'Manage your profile',
-                gradient: 'from-orange-500/10 to-red-500/10',
-                borderColor: 'border-orange-500/20',
-                href: '/settings'
-              },
-            ].map((utility) => (
-              <GlassmorphicCard
-                key={utility.title}
-                className={`p-6 text-center cursor-pointer bg-linear-to-br ${utility.gradient} border ${utility.borderColor} hover:scale-105 transition-all duration-300 hover:shadow-lg`}
-                hover
-                onClick={() => {
-                  if (utility.onClick === 'viewChart') {
-                    handleViewChart()
-                  } else if (utility.href) {
-                    window.location.href = utility.href
-                  }
-                }}
-              >
-                <div className="text-5xl mb-3 filter drop-shadow-sm">{utility.icon}</div>
-                <h4 className="font-semibold text-foreground mb-2 text-sm">{utility.title}</h4>
-                <p className="text-xs text-muted-foreground leading-relaxed">{utility.desc}</p>
-              </GlassmorphicCard>
-            ))}
-          </div>
         </div>
 
         {/* Birth Chart Modal */}

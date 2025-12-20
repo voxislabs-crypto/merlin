@@ -36,11 +36,36 @@ const BirthDataOnboarding = ({ userName, onComplete }: BirthDataOnboardingProps)
     e.preventDefault()
     setIsGenerating(true)
 
-    // Simulate chart generation
-    setTimeout(() => {
-      onComplete(birthData)
+    try {
+      const response = await fetch('/api/calculate-birth-chart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          birthDate: birthData.birthDate,
+          birthTime: birthData.timeUnknown ? '12:00' : birthData.birthTime,
+          birthLocation: birthData.birthLocation,
+          timeUnknown: birthData.timeUnknown
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to calculate birth chart')
+      }
+
+      const chartData = await response.json()
+      onComplete({
+        ...birthData,
+        chartData
+      })
+    } catch (error) {
+      console.error('Error calculating birth chart:', error)
+      // You might want to show an error message to the user here
+    } finally {
       setIsGenerating(false)
-    }, 3000)
+    }
   }
 
   const handleInputChange = (field: keyof BirthData, value: string | boolean) => {

@@ -98,7 +98,7 @@ export default function CosmicUtilities({ userId, userProfile }: CosmicUtilities
       const data = await response.json()
       toast.success('Image generated successfully!')
       setImagePrompt('')
-      
+
       // Open image in new tab or show in modal
       window.open(data.imageUrl, '_blank')
     } catch (error) {
@@ -162,14 +162,14 @@ export default function CosmicUtilities({ userId, userProfile }: CosmicUtilities
       'What career opportunities are emerging?',
       'Help me understand this challenge...',
       'What does my birth chart reveal about my purpose?'
-    ]
+    ];
 
     if (userProfile?.mbti) {
-      prompts.push(`How can I, as an ${userProfile.mbti}, best navigate today's energy?`)
+      prompts.push(`How can I, as an ${userProfile.mbti}, best navigate today's energy?`);
     }
 
-    return prompts
-  }
+    return prompts;
+  };
 
   const getImageStyles = () => [
     { value: 'cosmic', label: 'Cosmic Vision', description: 'Mystical, celestial imagery' },
@@ -254,7 +254,7 @@ export default function CosmicUtilities({ userId, userProfile }: CosmicUtilities
                   </div>
                 </ScrollArea>
               </div>
-              
+
               <div className="flex space-x-2">
                 <Input
                   value={currentMessage}
@@ -436,7 +436,7 @@ export default function CosmicUtilities({ userId, userProfile }: CosmicUtilities
                 </Button>
 
                 {reframedResult && (
-                  <div className="bg-gradient-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200">
+                  <div className="bg-linear-to-r from-purple-50 to-blue-50 p-4 rounded-lg border border-purple-200">
                     <h3 className="font-medium text-purple-900 mb-2">Cosmic Reframing</h3>
                     <p className="text-purple-800 leading-relaxed">{reframedResult}</p>
                     <div className="flex space-x-2 mt-4">

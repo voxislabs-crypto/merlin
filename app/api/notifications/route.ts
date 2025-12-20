@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { PrismaClient } from '@prisma/client'
 import { notificationService } from '@/lib/notifications/notification-service'
 
 const prisma = new PrismaClient()
 
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
     const userId = searchParams.get('userId')
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
     const body = await request.json()
     const { userId, type, title, scheduledAt, timezone = 'UTC' } = body
@@ -66,7 +66,7 @@ export async function POST(request: NextRequest) {
         userId,
         type,
         title,
-        content: {}, // Will be populated when sent
+        content: {} as any, // Will be populated when sent
         scheduledAt: scheduledAt ? new Date(scheduledAt) : new Date(),
         timezone,
         status: 'scheduled'

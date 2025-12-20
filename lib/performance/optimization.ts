@@ -383,7 +383,7 @@ export function createWorkerPool<T, R>(
       }
 
       worker.onerror = (error) => {
-        task.reject(error)
+        task.reject(new Error(error.message || 'Worker error'))
         workers.push(worker)
         availableWorkers++
         processQueue()
@@ -434,7 +434,7 @@ export function createOptimizedCalculator<T extends (...args: any[]) => any>(
   calculator: T,
   cache: MemoryCache<any>,
   complexityThreshold = 100 // ms
-): T {
+): (...args: Parameters<T>) => Promise<ReturnType<T>> {
   return memoize(
     async (...args: Parameters<T>) => {
       const timer = performanceMonitor.startTimer('astro-calculation')

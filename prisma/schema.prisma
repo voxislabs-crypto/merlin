@@ -13,6 +13,7 @@ datasource db {
 model UserProfile {
   id            String   @id @default(uuid())
   userId        String   @unique @map("user_id")
+  user          User     @relation(fields: [userId], references: [id])
   name          String?  @map("name")
   birthDate     DateTime? @map("birth_date")
   birthTime     String?  @map("birth_time")
@@ -142,17 +143,47 @@ model NotificationPreference {
 }
 
 model BirthChart {
-  id          String   @id @default(uuid())
-  userId      String   @map("user_id")
-  birthDate   DateTime @map("birth_date")
-  latitude    Float
-  longitude   Float
-  planets     Json     // { sun: { longitude: 210.5, sign: "Scorpio", ... } }
-  houses      Json
-  aspects     Json?
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id                String   @id @default(uuid())
+  userId            String   @map("user_id")
+  birthDate         DateTime @map("birth_date")
+  birthTime         String?  @map("birth_time") // Store as string in format "HH:MM"
+  birthLocation     String?  @map("birth_location")
+  latitude         Float
+  longitude        Float
+  planets          Json     // Array of planet positions
+  houses           Json     // Array of house cusps
+  aspects          Json?    // Array of aspects
+  chartData        Json?    // Complete chart data
+  isDefault        Boolean  @default(false) @map("is_default")
+  julianDay        Float?   @map("julian_day")
+  timeUnknown      Boolean  @default(false) @map("time_unknown")
   
+  // Relations
+  user             User     @relation(fields: [userId], references: [id])
+  
+  // Timestamps
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+  
+  // Indexes
   @@index([userId])
-  @@map("birthchart")
+  @@index([isDefault])
+  
+  // Map to database table name
+  @@map("birth_charts")
+}
+
+model User {
+  id                String      @id @default(uuid())
+  email             String      @unique
+  name              String?
+  defaultChartId    String?     @map("default_chart_id")
+  birthCharts       BirthChart[]
+  profile           UserProfile?
+  
+  // Timestamps
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  
+  @@map("users")
 }

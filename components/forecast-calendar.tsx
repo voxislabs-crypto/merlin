@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -16,6 +16,8 @@ export function ForecastCalendar({ mbtiType }: ForecastCalendarProps) {
   const [currentDate, setCurrentDate] = useState(new Date())
   const [selectedDate, setSelectedDate] = useState<Date | null>(null)
   const [selectedForecast, setSelectedForecast] = useState<DailyForecast | null>(null)
+  const [dayRatings, setDayRatings] = useState<Record<string, string>>({})
+  const [isLoading, setIsLoading] = useState(false)
 
   const today = new Date()
   const year = currentDate.getFullYear()
@@ -28,7 +30,7 @@ export function ForecastCalendar({ mbtiType }: ForecastCalendarProps) {
   const startingDayOfWeek = firstDayOfMonth.getDay()
 
   // Generate calendar days
-  const calendarDays = []
+  const calendarDays: (Date | null)[] = [];
 
   // Add empty cells for days before month starts
   for (let i = 0; i < startingDayOfWeek; i++) {
@@ -54,15 +56,61 @@ export function ForecastCalendar({ mbtiType }: ForecastCalendarProps) {
     setSelectedForecast(null)
   }
 
-  const handleDateClick = (date: Date) => {
-    setSelectedDate(date)
-    const forecast = generateDailyForecast(date, mbtiType)
-    setSelectedForecast(forecast)
+  const handleDateClick = async (date: Date) => {
+    setSelectedDate(date);
+    setIsLoading(true);
+    try {
+      const forecast = await generateDailyForecast(date, mbtiType);
+      setSelectedForecast(forecast);
+
+      // Update the day rating in the cache
+      setDayRatings(prev => ({
+        ...prev,
+        [date.toDateString()]: forecast.day_rating
+      }));
+    } catch (error) {
+      console.error('Error generating forecast:', error);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
+  // Pre-calculate day ratings when month changes
+  useEffect(() => {
+    const calculateDayRatings = async () => {
+      setIsLoading(true);
+      try {
+        const ratings: Record<string, string> = {};
+
+        // Only process actual dates (filter out nulls)
+        const validDates = calendarDays.filter(Boolean) as Date[];
+
+        // Process each date to get its rating
+        for (const date of validDates) {
+          try {
+            const forecast = await generateDailyForecast(date, mbtiType);
+            ratings[date.toDateString()] = forecast.day_rating;
+          } catch (error) {
+            console.error(`Error getting forecast for ${date.toDateString()}:`, error);
+            ratings[date.toDateString()] = 'gray';
+          }
+        }
+
+        setDayRatings(ratings);
+      } catch (error) {
+        console.error('Error calculating day ratings:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    calculateDayRatings();
+  }, [calendarDays, mbtiType]);
+
   const getDayRatingColor = (date: Date) => {
-    const forecast = generateDailyForecast(date)
-    switch (forecast.day_rating) {
+    const rating = dayRatings[date.toDateString()] || 'gray';
+
+    switch (rating) {
       case "green":
         return "bg-green-100 hover:bg-green-200 border-green-300 text-green-800"
       case "yellow":
@@ -107,7 +155,7 @@ export function ForecastCalendar({ mbtiType }: ForecastCalendarProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CalendarIcon className="w-6 h-6 text-primary" />
-              <CardTitle className="text-2xl font-[family-name:var(--font-montserrat)] font-bold">
+              <CardTitle className="text-2xl font-(family-name:--font-montserrat) font-bold">
                 Cosmic Calendar
               </CardTitle>
             </div>
@@ -147,12 +195,14 @@ export function ForecastCalendar({ mbtiType }: ForecastCalendarProps) {
                     {date ? (
                       <button
                         onClick={() => handleDateClick(date)}
+                        disabled={isLoading}
                         className={`
-                          w-full h-full rounded-lg border-2 transition-all duration-200 
+                          w-full h-full rounded-lg border-2 transition-all duration-200
                           flex flex-col items-center justify-center text-sm font-medium
                           ${getDayRatingColor(date)}
                           ${isSelected(date) ? "ring-2 ring-primary ring-offset-2" : ""}
                           ${isToday(date) ? "ring-1 ring-primary" : ""}
+                          ${isLoading ? "opacity-70 cursor-not-allowed" : ""}
                         `}
                       >
                         <span className="text-base">{date.getDate()}</span>
@@ -201,13 +251,12 @@ export function ForecastCalendar({ mbtiType }: ForecastCalendarProps) {
                 <CardContent>
                   <div className="space-y-3">
                     <Badge
-                      className={`${
-                        selectedForecast.day_rating === "green"
+                      className={`${selectedForecast.day_rating === "green"
                           ? "bg-green-100 text-green-800 border-green-200"
                           : selectedForecast.day_rating === "yellow"
                             ? "bg-yellow-100 text-yellow-800 border-yellow-200"
                             : "bg-red-100 text-red-800 border-red-200"
-                      } border`}
+                        } border`}
                     >
                       {selectedForecast.day_rating === "green" && "Favorable Day"}
                       {selectedForecast.day_rating === "yellow" && "Mixed Energies"}
@@ -266,7 +315,7 @@ export function ForecastCalendar({ mbtiType }: ForecastCalendarProps) {
       {selectedForecast && selectedDate && (
         <Card className="border-2 border-primary/20">
           <CardHeader>
-            <CardTitle className="text-xl font-[family-name:var(--font-montserrat)] font-bold">
+            <CardTitle className="text-xl font-(family-name:--font-montserrat) font-bold">
               Detailed Forecast
             </CardTitle>
           </CardHeader>

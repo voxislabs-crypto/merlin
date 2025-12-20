@@ -83,13 +83,13 @@ export function AdvancedForecastDisplay({
   return (
     <div className="space-y-6">
       {/* Confidence Score */}
-      <div className="bg-gradient-to-r from-primary/5 to-secondary/5 p-4 rounded-lg border border-primary/20">
+      <div className="bg-linear-to-r from-primary/5 to-secondary/5 p-4 rounded-lg border border-primary/20">
         <div className="flex items-center justify-between mb-2">
           <h3 className="font-semibold text-primary">Forecast Confidence</h3>
           <div className="flex items-center space-x-2">
             <div className="w-24 bg-muted rounded-full h-2">
               <div
-                className="bg-gradient-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
+                className="bg-linear-to-r from-primary to-secondary h-2 rounded-full transition-all duration-500"
                 style={{ width: `${forecast.confidence * 100}%` }}
               ></div>
             </div>
@@ -100,7 +100,7 @@ export function AdvancedForecastDisplay({
       </div>
 
       {resonanceStats && (
-        <div className="bg-gradient-to-r from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 p-4 rounded-lg border border-violet-200 dark:border-violet-800">
+        <div className="bg-linear-to-r from-violet-50 to-purple-50 dark:from-violet-950/20 dark:to-purple-950/20 p-4 rounded-lg border border-violet-200 dark:border-violet-800">
           <h3 className="font-semibold text-violet-900 dark:text-violet-100 mb-3">Resonance Intelligence</h3>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             {/* Global Resonance */}
@@ -180,12 +180,12 @@ export function AdvancedForecastDisplay({
       </div>
 
       {/* Cross-System Validation */}
-      <div className="bg-gradient-to-r from-secondary/5 to-primary/5 p-4 rounded-lg border border-secondary/20">
+      <div className="bg-linear-to-r from-secondary/5 to-primary/5 p-4 rounded-lg border border-secondary/20">
         <h3 className="font-semibold text-lg mb-3 text-secondary">Cross-System Analysis</h3>
         <div className="space-y-3">
           {forecast.crossValidation.interpretations.map((interp: any, index: number) => (
             <div key={index} className="flex items-start space-x-3">
-              <div className="w-2 h-2 bg-secondary rounded-full mt-2 flex-shrink-0"></div>
+              <div className="w-2 h-2 bg-secondary rounded-full mt-2 shrink-0"></div>
               <div>
                 <p className="font-medium text-sm text-secondary">{interp.system}</p>
                 <p className="text-sm text-muted-foreground">{interp.guidance}</p>

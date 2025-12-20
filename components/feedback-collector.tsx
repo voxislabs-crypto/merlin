@@ -112,7 +112,7 @@ export function FeedbackCollector({
   }
 
   return (
-    <Card className="border-primary/20 bg-gradient-to-r from-primary/5 to-secondary/5">
+    <Card className="border-primary/20 bg-linear-to-r from-primary/5 to-secondary/5">
       <CardHeader className="pb-3">
         <CardTitle className="text-base flex items-center">
           <TrendingUp className="w-4 h-4 mr-2 text-primary" />

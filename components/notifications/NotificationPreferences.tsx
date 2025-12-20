@@ -235,7 +235,7 @@ export default function NotificationPreferences({ userId }: { userId: string }) 
                 <Label htmlFor="weekly-day">Day of Week</Label>
                 <Select
                   value={preferences.weeklyDay.toString()}
-                  onValueChange={(value) => handleSwitchChange('weeklyDay', parseInt(value))}
+                  onValueChange={(value) => handleSwitchChange('weeklyDay', parseInt(value)) as any}
                   disabled={saving}
                 >
                   <SelectTrigger>

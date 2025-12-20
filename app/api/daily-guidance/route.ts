@@ -146,7 +146,7 @@ function generateDailyGuidance(
   }
   
   const timeKey = timeOfDay as keyof typeof themeTemplates[typeof primaryTheme.name]
-  const template = themeTemplates[primaryTheme.name]?.[timeKey] || themeTemplates['karmic-alignment'].morning
+  const template = (themeTemplates[primaryTheme.name as keyof typeof themeTemplates] as any)?.[timeKey] || themeTemplates['karmic-alignment'].morning
   
   // Personalize based on resonance stats
   let resonanceNote = ""

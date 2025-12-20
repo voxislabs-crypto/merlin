@@ -48,6 +48,7 @@ export function TimelineView({ birthYear, mbtiType }: TimelineViewProps) {
       jupiter: "border-green-300 bg-green-50 text-green-700",
       uranus: "border-purple-300 bg-purple-50 text-purple-700",
       neptune: "border-blue-300 bg-blue-50 text-blue-700",
+      pluto: "border-indigo-300 bg-indigo-50 text-indigo-700",
       chiron: "border-orange-300 bg-orange-50 text-orange-700",
       major: "border-gray-300 bg-gray-50 text-gray-700",
     }
@@ -90,7 +91,7 @@ export function TimelineView({ birthYear, mbtiType }: TimelineViewProps) {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <ClockIcon className="w-6 h-6 text-primary" />
-              <CardTitle className="text-2xl font-[family-name:var(--font-montserrat)] font-bold">
+              <CardTitle className="text-2xl font-(family-name:--font-montserrat) font-bold">
                 Your Cosmic Timeline
               </CardTitle>
             </div>
@@ -124,9 +125,8 @@ export function TimelineView({ birthYear, mbtiType }: TimelineViewProps) {
         {visibleYears.map((yearData) => (
           <Card
             key={yearData.year}
-            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${
-              selectedYear?.year === yearData.year ? "ring-2 ring-primary ring-offset-2" : ""
-            }`}
+            className={`cursor-pointer transition-all duration-200 hover:shadow-lg ${selectedYear?.year === yearData.year ? "ring-2 ring-primary ring-offset-2" : ""
+              }`}
             onClick={() => setSelectedYear(yearData)}
           >
             <CardHeader>
@@ -175,7 +175,7 @@ export function TimelineView({ birthYear, mbtiType }: TimelineViewProps) {
         <Card className="border-2 border-primary/20">
           <CardHeader>
             <div className="flex items-center justify-between">
-              <CardTitle className="text-xl font-[family-name:var(--font-montserrat)] font-bold">
+              <CardTitle className="text-xl font-(family-name:--font-montserrat) font-bold">
                 {selectedYear.year} - Detailed Guidance
               </CardTitle>
               <Button variant="ghost" size="sm" onClick={() => setSelectedYear(null)}>

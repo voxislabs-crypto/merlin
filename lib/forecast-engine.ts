@@ -185,3 +185,68 @@ function getFallbackForecast(date: Date): DailyForecast {
     },
   };
 }
+
+// Missing functions needed by weekly-forecast API
+function generateMood(aspects: any[]): string {
+  if (aspects.length === 0) return 'Neutral';
+  
+  // Count aspect types
+  const aspectCounts = aspects.reduce((acc, aspect) => {
+    acc[aspect.aspect] = (acc[aspect.aspect] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
+  
+  // Determine mood based on dominant aspect type
+  if (aspectCounts['square'] || aspectCounts['opposition']) {
+    return 'Challenged';
+  } else if (aspectCounts['trine'] || aspectCounts['sextile']) {
+    return 'Harmonious';
+  } else if (aspectCounts['conjunction']) {
+    return 'Energetic';
+  }
+  
+  return 'Balanced';
+}
+
+function generateAdvice(primaryTheme: string, aspects: any[]): string {
+  // Simple advice based on primary theme
+  const adviceMap: Record<string, string> = {
+    'New Beginnings': 'A great day to start new projects or set intentions.',
+    'Challenges': 'Practice patience and flexibility today.',
+    'Harmony': 'A good day for collaboration and social activities.',
+    'Tension': 'Take time to reflect before making important decisions.',
+    'Opportunities': 'Be open to new possibilities and connections.',
+    'Reflection': 'A good day for introspection and planning.',
+  };
+  
+  return adviceMap[primaryTheme] || 'Trust your intuition today.';
+}
+
+function calculateIntensity(aspects: any[]): number {
+  if (aspects.length === 0) return 0.2;
+  
+  // Calculate intensity based on number and type of aspects
+  let intensity = 0;
+  
+  for (const aspect of aspects) {
+    // Weight different aspect types differently
+    const weights: Record<string, number> = {
+      conjunction: 1.2,
+      opposition: 1.0,
+      square: 0.9,
+      trine: 0.7,
+      sextile: 0.5,
+    };
+    
+    const weight = weights[aspect.aspect] || 0.5;
+    const orbFactor = 1 - (aspect.orb / 8); // Normalize orb (0-8°) to 0-1
+    
+    intensity += weight * orbFactor;
+  }
+  
+  // Cap intensity at 1.0 and ensure minimum value
+  return Math.min(Math.max(intensity * 0.2, 0.1), 1.0);
+}
+
+// Export additional functions needed by weekly-forecast API
+export { generateThemes, generateMood, generateAdvice, calculateIntensity, calculateConfidence };

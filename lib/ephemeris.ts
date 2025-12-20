@@ -3,7 +3,7 @@ import { PlanetPosition, EphemerisResponse } from '@/types/ephemeris';
 import { calculatePlanetaryPositions } from './astrology/ephemeris';
 
 // Set the path to the ephemeris files
-set_ephe_path('./node_modules/ephemeris/ephe');
+set_ephe_path('./ephe');
 
 // Enhanced ephemeris functions with timezone support and fallback
 export async function getPlanetPosition(

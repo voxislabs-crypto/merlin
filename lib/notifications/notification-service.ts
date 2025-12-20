@@ -39,7 +39,7 @@ export class NotificationService {
     if (!preferences?.dailyEnabled) return
 
     const now = new Date()
-    const userTimezone = preferences.timezone || 'UTC'
+    const userTimezone = 'UTC' // Default to UTC since timezone is not in the preferences model
 
     // Morning notification
     if (preferences.morningTime) {
@@ -88,7 +88,7 @@ export class NotificationService {
     if (!preferences?.weeklyEnabled) return
 
     const now = new Date()
-    const userTimezone = preferences.timezone || 'UTC'
+    const userTimezone = 'UTC' // Default to UTC since timezone is not in the preferences model
 
     // Calculate next weekly notification day
     const weeklyTime = this.parseTime(preferences.weeklyTime || '10:00')
@@ -119,7 +119,7 @@ export class NotificationService {
     type: 'morning' | 'evening' | 'weekly'
   ): Promise<NotificationContent> {
     const userProfile = await this.getUserProfile(userId)
-    const location = this.parseBirthLocation(userProfile?.birthLocation)
+    const location = this.parseBirthLocation(userProfile?.birthLocation || '')
 
     switch (type) {
       case 'morning':
@@ -154,7 +154,7 @@ export class NotificationService {
         await this.sendNotification(notification.id)
       } catch (error) {
         console.error(`Failed to send notification ${notification.id}:`, error)
-        await this.markNotificationFailed(notification.id, error.message)
+        await this.markNotificationFailed(notification.id, error instanceof Error ? error.message : 'Unknown error')
       }
     }
   }
@@ -182,7 +182,7 @@ export class NotificationService {
       // Update notification with generated content
       await prisma.notification.update({
         where: { id: notificationId },
-        data: { content }
+        data: { content: content as any }
       })
     }
 

@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { useUser } from '@clerk/nextjs'
+import { useUser, useAuth } from '@clerk/nextjs'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
@@ -60,38 +60,41 @@ interface BirthChartDisplayProps {
 
 export function BirthChartDisplay({ birthData }: BirthChartDisplayProps) {
   const { user } = useUser()
-  const [chartData, setChartData] = useState<BirthChartData | null>(null)
+  const { getToken } = useAuth();
+  const [chartData, setChartData] = useState<any>(null)
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const fetchBirthChart = async () => {
-    if (!user && !birthData) return
-
-    setLoading(true)
-    setError(null)
-
+    if (!birthData) return;
+    
+    setLoading(true);
+    setError(null);
+    
     try {
-      const requestData = birthData || {
-          birthDate: user?.unsafeMetadata?.birthDate,
-          birthTime: user?.unsafeMetadata?.birthTime || '12:00',
-          birthLocation: user?.unsafeMetadata?.birthLocation || 'New York, NY',
-          timeUnknown: !user?.unsafeMetadata?.birthTime
-        }
-        
-        console.log('Sending birth chart request:', requestData)
-        
-        const response = await fetch('/api/birth-chart', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(requestData)
-        })
+      const requestData = {
+        birthDate: birthData.birthDate,
+        birthTime: birthData.birthTime,
+        birthLocation: birthData.birthLocation,
+        timeUnknown: birthData.timeUnknown || false,
+      };
+      
+      console.log('Sending birth chart request:', requestData);
+      
+      const token = await getToken();
+      const response = await fetch('/api/birth-chart', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify(requestData)
+      });
 
       if (!response.ok) {
-        const errorText = await response.text()
-        console.error('API Error Response:', errorText)
-        throw new Error(`Failed to calculate birth chart: ${response.status} ${response.statusText}`)
+        const errorText = await response.text();
+        console.error('API Error Response:', errorText);
+        throw new Error(`Failed to calculate birth chart: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json()
@@ -150,15 +153,22 @@ export function BirthChartDisplay({ birthData }: BirthChartDisplayProps) {
             <div className="mt-6">
               <h3 className="text-lg font-medium mb-2">Planetary Positions</h3>
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                {chartData.positions.map((planet) => (
-                  <div key={planet.planet} className="p-3 border rounded-lg">
-                    <div className="font-medium">{planet.planet}</div>
-                    <div>{planet.sign} {planet.degree}° {planet.minute}' {planet.second}"</div>
-                    <div className="text-sm text-muted-foreground">
-                      House {planet.house}
+                {chartData.planets?.map((planet: any) => {
+                  // Convert longitude to degrees, minutes, seconds
+                  const degrees = Math.floor(planet.longitude);
+                  const minutes = Math.floor((planet.longitude - degrees) * 60);
+                  const seconds = Math.floor((((planet.longitude - degrees) * 60) - minutes) * 60);
+                  
+                  return (
+                    <div key={planet.name} className="p-3 border rounded-lg">
+                      <div className="font-medium">{planet.name}</div>
+                      <div>{planet.sign} {degrees}° {minutes}' {seconds}"</div>
+                      <div className="text-sm text-muted-foreground">
+                        House {planet.house}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           </div>
