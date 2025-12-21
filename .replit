@@ -1,0 +1,8 @@
+run = "npm install && npm run dev"
+
+[env]
+PORT = "5000"
+NODE_ENV = "development"
+
+[agent]
+expertMode = true
