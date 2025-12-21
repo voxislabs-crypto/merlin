@@ -91,23 +91,23 @@ model Notification {
   scheduledAt DateTime @map("scheduled_at") // When the notification should be sent
   sentAt      DateTime? @map("sent_at") // When the notification was actually sent
   readAt      DateTime? @map("read_at") // When the user read the notification
-  
+
   // User preferences
   channel     String   @default("app") // 'app', 'email', 'push'
   timezone    String   @default("UTC")
-  
+
   // Metadata
   retryCount  Int      @default(0) @map("retry_count")
   lastError   String?  @map("last_error")
-  
+
   // Timestamps
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
-  
+
   // Indexes
   @@index([userId, status, scheduledAt])
   @@index([type, status, scheduledAt])
-  
+
   // Map to database table name
   @@map("notifications")
 }
@@ -115,29 +115,29 @@ model Notification {
 model NotificationPreference {
   id          String   @id @default(uuid())
   userId      String   @unique @map("user_id")
-  
+
   // Notification channels
   pushEnabled Boolean  @default(true) @map("push_enabled")
   emailEnabled Boolean @default(false) @map("email_enabled")
-  
+
   // Timing preferences (in user's local time)
   morningTime String   @default("08:00") @map("morning_time") // Format: HH:MM
   eveningTime String   @default("20:00") @map("evening_time")
   weeklyDay   Int      @default(0) @map("weekly_day") // 0-6 (Sunday-Saturday)
   weeklyTime  String   @default("10:00") @map("weekly_time")
-  
+
   // Notification types
   dailyEnabled  Boolean @default(true) @map("daily_enabled")
   weeklyEnabled Boolean @default(true) @map("weekly_enabled")
-  
+
   // Content preferences
   themeEnabled  Boolean @default(true) @map("theme_enabled")
   aspectsEnabled Boolean @default(true) @map("aspects_enabled")
   mbtiEnabled   Boolean @default(true) @map("mbti_enabled")
-  
+
   // Timestamps
   updatedAt    DateTime @updatedAt @map("updated_at")
-  
+
   // Map to database table name
   @@map("notification_preferences")
 }
@@ -157,18 +157,18 @@ model BirthChart {
   isDefault        Boolean  @default(false) @map("is_default")
   julianDay        Float?   @map("julian_day")
   timeUnknown      Boolean  @default(false) @map("time_unknown")
-  
+
   // Relations
   user             User     @relation(fields: [userId], references: [id])
-  
+
   // Timestamps
   createdAt        DateTime @default(now()) @map("created_at")
   updatedAt        DateTime @updatedAt @map("updated_at")
-  
+
   // Indexes
   @@index([userId])
   @@index([isDefault])
-  
+
   // Map to database table name
   @@map("birth_charts")
 }
@@ -178,12 +178,12 @@ model User {
   email             String      @unique
   name              String?
   defaultChartId    String?     @map("default_chart_id")
-  birthCharts       BirthChart[]
+  birthChart       BirthChart[]
   profile           UserProfile?
-  
+
   // Timestamps
   createdAt         DateTime    @default(now()) @map("created_at")
   updatedAt         DateTime    @updatedAt @map("updated_at")
-  
+
   @@map("users")
 }
